@@ -1,0 +1,44 @@
+---
+import Osnova from '../layouts/Osnova.astro';
+import { KOLACIC, kodJeIspravan, napraviSesiju } from '../lib/sesija';
+
+export const prerender = false;
+
+const natragParam = Astro.url.searchParams.get('natrag') ?? '/specifikacija';
+const natrag = natragParam.startsWith('/') && !natragParam.startsWith('//') ? natragParam : '/specifikacija';
+let greska = '';
+
+if (Astro.request.method === 'POST') {
+	const podaci = await Astro.request.formData();
+	const ime = String(podaci.get('ime') ?? '').trim().slice(0, 80);
+	const kod = String(podaci.get('kod') ?? '');
+	if (!ime) {
+		greska = 'Upiši ime i prezime.';
+	} else if (!kodJeIspravan(kod)) {
+		greska = 'Kod nije ispravan.';
+	} else {
+		const sesija = await napraviSesiju(ime);
+		Astro.cookies.set(KOLACIC, sesija.vrijednost, {
+			path: '/',
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax',
+			maxAge: sesija.maxAge,
+		});
+		return Astro.redirect(natrag);
+	}
+}
+---
+
+<Osnova naslov="Prijava">
+	<h1>Prijava</h1>
+	<p>Ovo je radni prostor tima e-satnice. Kod je u WhatsApp grupi. Kasnije ga zamjenjuje prijava preko Certilije.</p>
+	<form method="post">
+		<label for="ime">Ime i prezime</label>
+		<input id="ime" name="ime" autocomplete="name" required />
+		<label for="kod">Kod tima</label>
+		<input id="kod" name="kod" type="password" required />
+		{greska && <p class="greska">{greska}</p>}
+		<button type="submit">Uđi</button>
+	</form>
+</Osnova>

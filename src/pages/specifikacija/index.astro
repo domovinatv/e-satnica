@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import { env } from 'cloudflare:workers';
+import Osnova from '../../layouts/Osnova.astro';
+
+export const prerender = false;
+
+const sekcije = (await getCollection('specifikacija')).sort((a, b) => a.data.redoslijed - b.data.redoslijed);
+const { results } = await env.DB.prepare(
+	"SELECT sekcija, COUNT(*) AS ukupno, SUM(stanje = 'novo') AS novih FROM stavke GROUP BY sekcija",
+).all<{ sekcija: string; ukupno: number; novih: number }>();
+const brojevi = new Map(results.map((r) => [r.sekcija, r]));
+---
+
+<Osnova naslov="Specifikacija">
+	<h1>Specifikacija</h1>
+	<p>
+		Radna verzija. Uz svaku sekciju upiši komentar, zahtjev ili pitanje. Prihvaćene stavke skupljamo u pakete i iz
+		njih radimo iduću iteraciju.
+	</p>
+	{
+		sekcije.map((s) => {
+			const b = brojevi.get(s.id);
+			return (
+				<a href={`/specifikacija/${s.id}`} class="kartica" style="display:block;text-decoration:none;color:inherit">
+					<strong>{s.data.naslov}</strong>
+					<div class="meta">{s.data.sazetak}</div>
+					{b && (
+						<div class="meta">
+							{b.ukupno} unosa{b.novih > 0 && `, ${b.novih} novih`}
+						</div>
+					)}
+				</a>
+			);
+		})
+	}
+</Osnova>

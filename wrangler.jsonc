@@ -1,0 +1,24 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "e-satnica",
+	"account_id": "7dc7167b7e2e00923bfa7cd697df14e4",
+	"compatibility_date": "2026-10-19",
+	"compatibility_flags": ["global_fetch_strictly_public"],
+	"main": "@astrojs/cloudflare/entrypoints/server",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"routes": [{ "pattern": "e-satnica.domovina.ai", "custom_domain": true }],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "e-satnica",
+			"database_id": "5b1f16d2-876f-46dc-9733-a7622aabde78",
+			"migrations_dir": "./migrations"
+		}
+	],
+	"observability": {
+		"enabled": true
+	}
+}

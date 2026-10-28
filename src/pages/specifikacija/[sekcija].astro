@@ -1,0 +1,83 @@
+---
+import { getEntry, render } from 'astro:content';
+import { env } from 'cloudflare:workers';
+import Osnova from '../../layouts/Osnova.astro';
+
+export const prerender = false;
+
+const VRSTE = {
+	komentar: 'Komentar',
+	zahtjev: 'Zahtjev (što treba napraviti)',
+	pitanje: 'Pitanje',
+	odgovor: 'Odgovor na otvoreno pitanje',
+} as const;
+type Vrsta = keyof typeof VRSTE;
+
+const STANJA: Record<string, string> = {
+	novo: 'novo',
+	prihvaceno: 'prihvaćeno',
+	odbijeno: 'odbijeno',
+	gotovo: 'gotovo',
+};
+
+const sekcija = await getEntry('specifikacija', Astro.params.sekcija ?? '');
+if (!sekcija) return new Response('Nema te sekcije', { status: 404 });
+
+let greska = '';
+if (Astro.request.method === 'POST') {
+	const podaci = await Astro.request.formData();
+	const vrsta = String(podaci.get('vrsta') ?? '') as Vrsta;
+	const tekst = String(podaci.get('tekst') ?? '').trim();
+	if (!(vrsta in VRSTE)) {
+		greska = 'Odaberi vrstu unosa.';
+	} else if (tekst.length < 3 || tekst.length > 5000) {
+		greska = 'Tekst mora imati između 3 i 5000 znakova.';
+	} else {
+		await env.DB.prepare('INSERT INTO stavke (sekcija, vrsta, tekst, autor) VALUES (?, ?, ?, ?)')
+			.bind(sekcija.id, vrsta, tekst, Astro.locals.ime)
+			.run();
+		return Astro.redirect(`/specifikacija/${sekcija.id}#unosi`, 303);
+	}
+}
+
+const { Content } = await render(sekcija);
+const { results: stavke } = await env.DB.prepare(
+	'SELECT id, vrsta, tekst, autor, stanje, paket_id, created_at FROM stavke WHERE sekcija = ? ORDER BY created_at DESC',
+)
+	.bind(sekcija.id)
+	.all<{ id: number; vrsta: Vrsta; tekst: string; autor: string; stanje: string; paket_id: number | null; created_at: string }>();
+---
+
+<Osnova naslov={sekcija.data.naslov}>
+	<p class="meta"><a href="/specifikacija">← Specifikacija</a></p>
+	<h1>{sekcija.data.naslov}</h1>
+	<Content />
+
+	<h2 id="unos">Tvoj unos</h2>
+	<form method="post">
+		<label for="vrsta">Vrsta</label>
+		<select id="vrsta" name="vrsta" required>
+			{Object.entries(VRSTE).map(([k, v]) => <option value={k}>{v}</option>)}
+		</select>
+		<label for="tekst">Tekst</label>
+		<textarea id="tekst" name="tekst" required maxlength="5000"></textarea>
+		{greska && <p class="greska">{greska}</p>}
+		<button type="submit">Spremi</button>
+	</form>
+
+	<h2 id="unosi">Unosi ({stavke.length})</h2>
+	{stavke.length === 0 && <p class="meta">Još nema unosa.</p>}
+	{
+		stavke.map((s) => (
+			<div class="kartica">
+				<span class="oznaka">{VRSTE[s.vrsta]?.split(' (')[0] ?? s.vrsta}</span>
+				<span class="oznaka">{STANJA[s.stanje] ?? s.stanje}</span>
+				{s.paket_id && <span class="oznaka">paket {s.paket_id}</span>}
+				<p style="white-space:pre-wrap;margin:8px 0">{s.tekst}</p>
+				<div class="meta">
+					{s.autor} · {s.created_at.slice(0, 16)} UTC · #{s.id}
+				</div>
+			</div>
+		))
+	}
+</Osnova>

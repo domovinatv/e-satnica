@@ -1,0 +1,104 @@
+---
+interface Props {
+	naslov: string;
+}
+const { naslov } = Astro.props;
+const ime = Astro.locals.ime;
+---
+
+<!doctype html>
+<html lang="hr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{naslov} · e-satnica</title>
+	</head>
+	<body>
+		<header>
+			<a href="/specifikacija" class="logo">e-satnica</a>
+			{ime && <span class="tko">{ime}</span>}
+		</header>
+		<main>
+			<slot />
+		</main>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--plava: #1d4ed8;
+		--plava-svijetla: #eff4ff;
+		--tekst: #1f2937;
+		--siva: #6b7280;
+		--rub: #e5e7eb;
+		--pozadina: #ffffff;
+		color-scheme: light dark;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--plava: #7aa2ff;
+			--plava-svijetla: #172036;
+			--tekst: #e5e7eb;
+			--siva: #9ca3af;
+			--rub: #2d3748;
+			--pozadina: #0f1420;
+		}
+	}
+	* { box-sizing: border-box; }
+	body {
+		margin: 0;
+		font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+		color: var(--tekst);
+		background: var(--pozadina);
+	}
+	header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--rub);
+	}
+	.logo { font-weight: 700; color: var(--plava); text-decoration: none; font-size: 20px; }
+	.tko { color: var(--siva); font-size: 15px; }
+	main { max-width: 760px; margin: 0 auto; padding: 16px 16px 64px; }
+	a { color: var(--plava); }
+	h1 { line-height: 1.25; }
+	table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+	th, td { border: 1px solid var(--rub); padding: 6px 8px; text-align: left; vertical-align: top; }
+	label { display: block; font-weight: 600; margin: 12px 0 4px; }
+	input, select, textarea {
+		width: 100%;
+		font: inherit;
+		padding: 10px;
+		border: 1px solid var(--rub);
+		border-radius: 8px;
+		background: var(--pozadina);
+		color: var(--tekst);
+	}
+	textarea { min-height: 120px; }
+	button {
+		margin-top: 12px;
+		font: inherit;
+		font-weight: 600;
+		padding: 10px 18px;
+		border: 0;
+		border-radius: 8px;
+		background: var(--plava);
+		color: #fff;
+		cursor: pointer;
+	}
+	.kartica { border: 1px solid var(--rub); border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+	.meta { color: var(--siva); font-size: 14px; }
+	.oznaka {
+		display: inline-block;
+		font-size: 13px;
+		padding: 1px 8px;
+		border-radius: 999px;
+		background: var(--plava-svijetla);
+		color: var(--plava);
+		margin-right: 6px;
+	}
+	.greska { color: #dc2626; }
+</style>
