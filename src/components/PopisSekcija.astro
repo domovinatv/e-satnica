@@ -1,0 +1,57 @@
+---
+import type { SekcijaUPopisu } from '../lib/sekcije';
+
+interface Props {
+	sekcije: SekcijaUPopisu[];
+	aktivna?: string;
+}
+const { sekcije, aktivna } = Astro.props;
+---
+
+<nav class="popis" aria-label="Sekcije specifikacije">
+	{
+		sekcije.map((s) => (
+			<a
+				href={`/specifikacija/${s.id}`}
+				class:list={['stavka', { aktivna: s.id === aktivna }]}
+				aria-current={s.id === aktivna ? 'page' : undefined}
+			>
+				<strong>{s.naslov}</strong>
+				<span class="meta">{s.sazetak}</span>
+				{s.ukupno > 0 && (
+					<span class="meta brojac">
+						{s.ukupno} unosa{s.novih > 0 && `, ${s.novih} novih`}
+					</span>
+				)}
+			</a>
+		))
+	}
+</nav>
+
+<style>
+	.popis {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.stavka {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 10px 12px;
+		border: 1px solid var(--rub);
+		border-radius: 10px;
+		color: inherit;
+		text-decoration: none;
+	}
+	.stavka:hover {
+		border-color: var(--plava);
+	}
+	.stavka.aktivna {
+		border-color: var(--plava);
+		background: var(--plava-svijetla);
+	}
+	.brojac {
+		color: var(--plava);
+	}
+</style>

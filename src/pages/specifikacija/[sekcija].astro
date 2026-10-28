@@ -2,6 +2,7 @@
 import { getEntry, render } from 'astro:content';
 import { env } from 'cloudflare:workers';
 import Osnova from '../../layouts/Osnova.astro';
+import { ucitajSekcije } from '../../lib/sekcije';
 
 export const prerender = false;
 
@@ -41,6 +42,7 @@ if (Astro.request.method === 'POST') {
 }
 
 const { Content } = await render(sekcija);
+const sekcije = await ucitajSekcije();
 const { results: stavke } = await env.DB.prepare(
 	'SELECT id, vrsta, tekst, autor, stanje, paket_id, created_at FROM stavke WHERE sekcija = ? ORDER BY created_at DESC',
 )
@@ -48,8 +50,8 @@ const { results: stavke } = await env.DB.prepare(
 	.all<{ id: number; vrsta: Vrsta; tekst: string; autor: string; stanje: string; paket_id: number | null; created_at: string }>();
 ---
 
-<Osnova naslov={sekcija.data.naslov}>
-	<p class="meta"><a href="/specifikacija">← Specifikacija</a></p>
+<Osnova naslov={sekcija.data.naslov} sekcije={sekcije} aktivna={sekcija.id}>
+	<p class="meta samo-mobitel"><a href="/specifikacija">← Specifikacija</a></p>
 	<h1>{sekcija.data.naslov}</h1>
 	<Content />
 
