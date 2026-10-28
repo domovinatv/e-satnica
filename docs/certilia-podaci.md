@@ -132,9 +132,21 @@ podaci za krađu identiteta.
 
 **Mandatory user data your application require:** `pin`, `firstname`, `lastname`.
 
-Otvoreno: prikazuje li Certilijin ekran za pristanak cijelu gornju granicu ili
-samo ono što kod traži. Provjeriti na prvoj prijavi (`?debug=1`). Ako prikazuje
-cijelu granicu, razmisliti o sužavanju na ono što je u specifikaciji.
+### Izmjereno na prvoj prijavi (28. 10. 2026., debug)
+
+![Certilijin ekran za pristanak za e-satnicu](slike/certilia-pristanak-2026-10-28.png)
+
+- Ekran prikazuje **cijelu gornju granicu** iz registracije, ali dobrovoljna polja
+  su **neoznačena**; obavezna (`*`) su samo Ime i Prezime. Korisnik ne dijeli ništa
+  dodatno ako sam ne označi. Kod ionako sprema samo ono što je tražio step-upom.
+- OIB se na ekranu ne prikazuje i `pin` claim nije stigao, iako je u Mandatory.
+  Stigli su: `sub`, `given_name`, `family_name` (+ standardni `acr`, `amr`, `aud`,
+  `iss`, `sid`…). OIB se uzima iz `sub` (`oibIzTokena`), kao što je ZEF izmjerio.
+- „Select All" i „Remember this consent" su korisnikov izbor. Kako zapamćeni
+  pristanak utječe na kasniji step-up, još nije provjereno.
+
+Za upute korisnicima: dovoljno je kliknuti **Allow**; kvačice ispod Imena i
+Prezimena ne treba dirati.
 
 ## Za pravnicu
 
