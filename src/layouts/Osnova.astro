@@ -24,7 +24,13 @@ const ime = Astro.locals.ime;
 	<body>
 		<header>
 			<a href="/specifikacija" class="logo">e-satnica</a>
-			{ime && <span class="tko">{ime}</span>}
+			{
+				ime && (
+					<form method="post" action="/odjava" class="tko">
+						{ime} · <button type="submit" class="odjava">Odjava</button>
+					</form>
+				)
+			}
 		</header>
 		{
 			sekcije ? (
@@ -87,6 +93,7 @@ const ime = Astro.locals.ime;
 	}
 	.logo { font-weight: 700; color: var(--plava); text-decoration: none; font-size: 20px; }
 	.tko { color: var(--siva); font-size: 15px; }
+	.odjava { margin: 0; padding: 0; background: none; color: var(--plava); font-weight: 400; font-size: 15px; }
 	main { padding: 16px 16px 64px; }
 	.sam, .desno { max-width: 760px; margin: 0 auto; }
 	.lijevo { display: none; }

@@ -18,6 +18,12 @@
 			"migrations_dir": "./migrations"
 		}
 	],
+	"vars": {
+		"APP_ORIGIN": "https://e-satnica.domovina.ai",
+		"CERTILIA_ISSUER_BASE": "https://idp.certilia.com"
+	},
+	// Secrets (wrangler secret put, nikad ovdje): SESIJA_KLJUC, CERTILIA_CLIENT_ID,
+	// CERTILIA_CLIENT_SECRET, i privremeno TIM_KOD dok ne proradi Certilia.
 	"observability": {
 		"enabled": true
 	}

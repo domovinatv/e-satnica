@@ -1,16 +1,17 @@
 import { defineMiddleware } from 'astro:middleware';
 import { KOLACIC, procitajSesiju } from './lib/sesija';
 
-const JAVNO = ['/prijava', '/favicon.svg', '/favicon.ico'];
+const JAVNO = ['/prijava', '/odjava', '/favicon.svg', '/favicon.ico'];
 
 export const onRequest = defineMiddleware(async (context, next) => {
 	const { pathname } = context.url;
-	if (context.isPrerendered || JAVNO.includes(pathname)) return next();
+	if (context.isPrerendered || JAVNO.includes(pathname) || pathname.startsWith('/auth/')) return next();
 
-	const ime = await procitajSesiju(context.cookies.get(KOLACIC)?.value);
-	if (!ime) {
+	const sesija = await procitajSesiju(context.cookies.get(KOLACIC)?.value);
+	if (!sesija) {
 		return context.redirect(`/prijava?natrag=${encodeURIComponent(pathname)}`);
 	}
-	context.locals.ime = ime;
+	context.locals.ime = sesija.ime;
+	context.locals.korisnikId = sesija.korisnikId;
 	return next();
 });

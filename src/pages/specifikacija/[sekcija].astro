@@ -34,8 +34,8 @@ if (Astro.request.method === 'POST') {
 	} else if (tekst.length < 3 || tekst.length > 5000) {
 		greska = 'Tekst mora imati između 3 i 5000 znakova.';
 	} else {
-		await env.DB.prepare('INSERT INTO stavke (sekcija, vrsta, tekst, autor) VALUES (?, ?, ?, ?)')
-			.bind(sekcija.id, vrsta, tekst, Astro.locals.ime)
+		await env.DB.prepare('INSERT INTO stavke (sekcija, vrsta, tekst, autor, korisnik_id) VALUES (?, ?, ?, ?, ?)')
+			.bind(sekcija.id, vrsta, tekst, Astro.locals.ime, Astro.locals.korisnikId ?? null)
 			.run();
 		return Astro.redirect(`/specifikacija/${sekcija.id}#unosi`, 303);
 	}
