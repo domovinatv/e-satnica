@@ -64,6 +64,17 @@ export const STEP_UP = {
 } as const;
 export type StepUpPodatak = keyof typeof STEP_UP;
 
+/** Naziv kakav korisnik vidi na Certilijinom ekranu za pristanak. */
+export const NAZIV_NA_CERTILIJI: Record<StepUpPodatak, string> = {
+	birthdate: 'Datum rođenja',
+	address: 'Adresa',
+	email: 'Email',
+	mobile: 'Mobitel',
+	organization: 'Organizacije',
+	gender: 'Spol',
+	country: 'Država',
+};
+
 export function parsirajTrazi(raw: string | null | undefined): StepUpPodatak[] {
 	return [...new Set((raw ?? '').split(','))].filter((p): p is StepUpPodatak => p in STEP_UP);
 }
@@ -71,7 +82,8 @@ export function parsirajTrazi(raw: string | null | undefined): StepUpPodatak[] {
 function claimsZahtjev(trazi: StepUpPodatak[]) {
 	const idToken: Record<string, { essential: true } | null> = { pin: { essential: true } };
 	for (const c of OSNOVNI_CLAIMOVI.slice(1)) idToken[c] = null;
-	for (const p of trazi) for (const c of STEP_UP[p]) idToken[c] = null;
+	// Eksperiment 28. 10.: traženi podatak kao essential, da ga Certilia predoznači na ekranu.
+	for (const p of trazi) for (const c of STEP_UP[p]) idToken[c] = { essential: true };
 	return { id_token: idToken };
 }
 
@@ -205,7 +217,15 @@ function parseOrganizations(raw: unknown): { name: string | null; vat: string | 
 	}
 }
 
-/** Poveznica kojom funkcija traži podatak koji još nemamo: `stepUpUrl(['birthdate'], '/bodovi')`. */
-export function stepUpUrl(trazi: StepUpPodatak[], natrag: string): string {
+/**
+ * Poveznica kojom funkcija traži podatak koji još nemamo. Vodi na našu međustranicu
+ * (/dopuna), koja kaže zašto i što označiti, jer Certilijin ekran to ne kaže:
+ * `stepUpUrl(['birthdate'], '/bodovi', 'Dob je kriterij bodovanja.')`
+ */
+export function stepUpUrl(trazi: StepUpPodatak[], natrag: string, svrha: string): string {
+	return `/dopuna?${new URLSearchParams({ trazi: trazi.join(','), natrag, svrha }).toString()}`;
+}
+
+export function certiliaStepUpUrl(trazi: StepUpPodatak[], natrag: string): string {
 	return `/auth/certilia/start?${new URLSearchParams({ trazi: trazi.join(','), natrag }).toString()}`;
 }

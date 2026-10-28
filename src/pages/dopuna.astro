@@ -1,0 +1,41 @@
+---
+import Osnova from '../layouts/Osnova.astro';
+import { certiliaStepUpUrl, NAZIV_NA_CERTILIJI, parsirajTrazi } from '../lib/certilia/oidc';
+import { sigurnoNatrag } from '../lib/sesija';
+
+export const prerender = false;
+
+// Certilijin ekran za pristanak nabraja sva polja iz registracije i ne kaže što
+// nam treba, pa korisniku to kažemo ovdje, prije preusmjeravanja.
+const p = Astro.url.searchParams;
+const trazi = parsirajTrazi(p.get('trazi'));
+const natrag = sigurnoNatrag(p.get('natrag'));
+const svrha = (p.get('svrha') ?? '').slice(0, 300);
+if (!trazi.length) return Astro.redirect(natrag);
+const nazivi = trazi.map((t) => NAZIV_NA_CERTILIJI[t]);
+---
+
+<Osnova naslov="Dopuna podataka">
+	<h1>Trebamo podatak iz e-Osobne</h1>
+	{svrha && <p>{svrha}</p>}
+	<p>Na sljedećem Certilijinom ekranu označi:</p>
+	<ul>
+		{nazivi.map((n) => <li><strong>{n}</strong></li>)}
+	</ul>
+	<p>i klikni <strong>Allow</strong>. Ostale kvačice ne diraj; spremamo samo ono što je ovdje navedeno.</p>
+	<a class="gumb" href={certiliaStepUpUrl(trazi, natrag)}>Nastavi na Certiliju</a>
+	<p class="meta"><a href={natrag}>Ne sada</a></p>
+</Osnova>
+
+<style>
+	.gumb {
+		display: inline-block;
+		margin: 8px 0 16px;
+		padding: 12px 20px;
+		border-radius: 8px;
+		background: var(--plava);
+		color: #fff;
+		font-weight: 600;
+		text-decoration: none;
+	}
+</style>
