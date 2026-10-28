@@ -159,6 +159,24 @@ Prezimena ne treba dirati.
 4. Tko je voditelj obrade: Most, udruga, fizička osoba? Treba li odvojiti e-satnicu od stranke?
 5. Smije li se `Organization` claim koristiti kao dokaz da je osoba ravnatelj škole?
 
+### Izmjereno na step-upu (28. 10. 2026., prave prijave)
+
+- **Certilia šalje sve što korisnik označi, bez obzira na `claims` zahtjev.** E-mail je
+  stigao iako ga nismo tražili. Filtriranje je na našoj strani: callback sprema samo
+  podatke zatražene u tom step-upu. Na Certiliju se kao zaštitu ne oslanjamo.
+- **`essential: true` za step-up claim Certilia ignorira**: polje nije predoznačeno.
+  Predoznačena (sa `*`) su samo polja iz Mandatory u registraciji. Zato postoji naša
+  međustranica `/dopuna`, koja kaže zašto i koju kvačicu označiti.
+- `birthdate` → spremljeno kao `YYYY-MM-DD` (10 znakova). `formatted` (adresa) stiže
+  kao niz od 3 retka → spremljeno kao jedan red s dva zareza.
+- Ista osoba u tri prijave = jedan zapis u `korisnici` (stabilan otisak OIB-a iz `sub`).
+  Je li `sub` doista 11-znamenkasti OIB, još nije potvrđeno (debug kartica).
+
+**Otvorena odluka:** adresa kao Mandatory bi je predoznačila, ali bi je tražila od
+svakoga pri svakoj prijavi, a tko odbije, ne ulazi. Preporuka: Mandatory tek kad
+modul raspodjele (pravilo 50 km) postane stvaran; do tada `/dopuna`. U kodu je
+`essential` još uključen (bezopasan, ali nedjelotvoran); vratiti na `null`.
+
 ## Tijek prijave za upute korisnicima
 
 1. Certilia prijava (e-mail ili OIB i lozinka): `slike/certilia-1-prijava.png`
