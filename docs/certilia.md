@@ -57,3 +57,8 @@ je stigao OIB, bez ijedne vrijednosti. Izmjereno u ZEF-u (14. i 21. 9. 2026.):
 - `prijave`: revizija svake prijave, s imenima claimova bez vrijednosti.
 
 Kad Certilia proradi za cijeli tim: `npx wrangler secret delete TIM_KOD` gasi prijavu kodom.
+
+## Vezani dokumenti
+
+- [certilia-podaci.md](certilia-podaci.md): koje podatke tražimo, step-up, izmjereni ekran za pristanak
+- [passkey.md](passkey.md): pristupni ključ kao brži ulaz nakon prijave Certilijom
