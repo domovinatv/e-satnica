@@ -91,7 +91,9 @@ export async function buildAuthorizeUrl(args: {
 		nonce: args.nonce,
 		code_challenge: await codeChallengeS256(args.codeVerifier),
 		code_challenge_method: 'S256',
-		prompt: 'login',
+		// Certilia pamti pristanak na podatke iz prve prijave (izmjereno 28. 10. 2026.):
+		// druga prijava pita samo za scope. Step-up zato traži ponovni ekran za pristanak.
+		prompt: args.trazi.length ? 'login consent' : 'login',
 		claims: JSON.stringify(claimsZahtjev(args.trazi)),
 	});
 	return `${discovery.authorization_endpoint}?${params.toString()}`;
