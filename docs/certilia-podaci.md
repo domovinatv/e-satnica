@@ -187,3 +187,17 @@ Javna stranica s ovim koracima: `/upute` (`src/pages/upute.astro`, izrezane slik
    **Allow**: `slike/certilia-3-pristanak-prva-prijava.png`. Kod step-upa
    (npr. datum rođenja za bodovanje) isti ekran, s uputom koju kvačicu označiti:
    `slike/certilia-3-pristanak-step-up.png`.
+
+## Izmjereno na produkciji (28. 10. 2026.)
+
+Obična prijava (bez step-upa, `claims` traži samo OIB, ime i prezime) u 18:10 vratila
+je u ID tokenu i `birthdate`, `email` i `formatted` (adresa). Ne traži ih kod, nego
+ih je Certilia poslala, vjerojatno jer su te kvačice na ekranu pristanka ostale
+označene od ranijih step-up testova. Aplikacija ih ne sprema (`stepUpVrijednosti`
+uzima samo zatraženo), ali ih prima. Ako želimo da ni ne stižu, treba provjeriti
+pamti li Certilia pristanak po korisniku i može li se suziti u registraciji.
+
+OIB je stigao samo kao `sub` (nema `pin` claima). Je li 11-znamenkast još nije
+potvrđeno; za prijavu nije bitno jer se iz njega radi samo HMAC otisak.
+
+Praćenje prijava tima: `scripts/prijave.sh` (korisnici, ključevi, neuspjele prijave).
