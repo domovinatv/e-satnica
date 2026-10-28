@@ -134,7 +134,7 @@ podaci za krađu identiteta.
 
 ### Izmjereno na prvoj prijavi (28. 10. 2026., debug)
 
-![Certilijin ekran za pristanak za e-satnicu](slike/certilia-pristanak-2026-10-28.png)
+![Certilijin ekran za pristanak za e-satnicu](slike/certilia-3-pristanak-prva-prijava.png)
 
 - Ekran prikazuje **cijelu gornju granicu** iz registracije, ali dobrovoljna polja
   su **neoznačena**; obavezna (`*`) su samo Ime i Prezime. Korisnik ne dijeli ništa
@@ -142,8 +142,11 @@ podaci za krađu identiteta.
 - OIB se na ekranu ne prikazuje i `pin` claim nije stigao, iako je u Mandatory.
   Stigli su: `sub`, `given_name`, `family_name` (+ standardni `acr`, `amr`, `aud`,
   `iss`, `sid`…). OIB se uzima iz `sub` (`oibIzTokena`), kao što je ZEF izmjerio.
-- „Select All" i „Remember this consent" su korisnikov izbor. Kako zapamćeni
-  pristanak utječe na kasniji step-up, još nije provjereno.
+- **Certilia pamti pristanak na podatke** iz prve prijave, iako „Remember this
+  consent" nije označen: druga prijava pita samo za scope (`profile`) i dobrovoljna
+  polja više ne nudi. Zato step-up šalje `prompt=login consent`; tada se izbor
+  podataka ponovno prikaže (provjereno istog dana). Osnovna prijava ostaje
+  `prompt=login`, jednim klikom.
 
 Za upute korisnicima: dovoljno je kliknuti **Allow**; kvačice ispod Imena i
 Prezimena ne treba dirati.
@@ -155,3 +158,12 @@ Prezimena ne treba dirati.
 3. Čl. 22: je li bodovanje u paralelnom sustavu (bez pravnog učinka) „automatizirana odluka"?
 4. Tko je voditelj obrade: Most, udruga, fizička osoba? Treba li odvojiti e-satnicu od stranke?
 5. Smije li se `Organization` claim koristiti kao dokaz da je osoba ravnatelj škole?
+
+## Tijek prijave za upute korisnicima
+
+1. Certilia prijava (e-mail ili OIB i lozinka): `slike/certilia-1-prijava.png`
+2. Potvrda u aplikaciji Certilia mobileID na mobitelu: `slike/certilia-2-mobileid.png`
+3. Pristanak na podatke: Ime i Prezime su obavezni, ostalo ne treba dirati, klik na
+   **Allow**: `slike/certilia-3-pristanak-prva-prijava.png`. Kod step-upa
+   (npr. datum rođenja za bodovanje) isti ekran, s uputom koju kvačicu označiti:
+   `slike/certilia-3-pristanak-step-up.png`.
