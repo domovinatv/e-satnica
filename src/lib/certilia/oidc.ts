@@ -44,20 +44,43 @@ export async function getOidc() {
 /**
  * OIB (`pin`) NE stiže kroz scope: discovery ne oglašava `eid`. Jedini pouzdan put je
  * `claims` parametar (claims_parameter_supported=true, `pin` je u claims_supported).
- * Tražimo samo ono što e-satnici treba; sve osim `pin` je dobrovoljno (null), pa
- * nedostajući claim degradira, a ne ruši prijavu.
+ *
+ * Osnovna prijava traži samo identitet. Sve ostalo je step-up: funkcija koja treba
+ * podatak pošalje korisnika na /auth/certilia/start?trazi=birthdate i tek se tada
+ * traži (docs/certilia-podaci.md). Dodatni claimovi su dobrovoljni (null), pa
+ * odbijen pristanak degradira, a ne ruši prijavu.
  */
-const CLAIMS_REQUEST = {
-	id_token: {
-		pin: { essential: true },
-		given_name: null,
-		family_name: null,
-		birthdate: null,
-		email: null,
-	},
-};
+const OSNOVNI_CLAIMOVI = ['pin', 'given_name', 'family_name'];
 
-export async function buildAuthorizeUrl(args: { state: string; nonce: string; codeVerifier: string }): Promise<string> {
+/** Podatak koji funkcija smije tražiti step-upom → claimovi koji ga nose. */
+export const STEP_UP = {
+	birthdate: ['birthdate'],
+	address: ['formatted', 'address'],
+	email: ['email'],
+	mobile: ['mobile'],
+	organization: ['organization', 'org_name', 'org_vat'],
+	gender: ['gender'],
+	country: ['country'],
+} as const;
+export type StepUpPodatak = keyof typeof STEP_UP;
+
+export function parsirajTrazi(raw: string | null | undefined): StepUpPodatak[] {
+	return [...new Set((raw ?? '').split(','))].filter((p): p is StepUpPodatak => p in STEP_UP);
+}
+
+function claimsZahtjev(trazi: StepUpPodatak[]) {
+	const idToken: Record<string, { essential: true } | null> = { pin: { essential: true } };
+	for (const c of OSNOVNI_CLAIMOVI.slice(1)) idToken[c] = null;
+	for (const p of trazi) for (const c of STEP_UP[p]) idToken[c] = null;
+	return { id_token: idToken };
+}
+
+export async function buildAuthorizeUrl(args: {
+	state: string;
+	nonce: string;
+	codeVerifier: string;
+	trazi: StepUpPodatak[];
+}): Promise<string> {
 	const { discovery } = await getOidc();
 	const params = new URLSearchParams({
 		client_id: env.CERTILIA_CLIENT_ID,
@@ -69,7 +92,7 @@ export async function buildAuthorizeUrl(args: { state: string; nonce: string; co
 		code_challenge: await codeChallengeS256(args.codeVerifier),
 		code_challenge_method: 'S256',
 		prompt: 'login',
-		claims: JSON.stringify(CLAIMS_REQUEST),
+		claims: JSON.stringify(claimsZahtjev(args.trazi)),
 	});
 	return `${discovery.authorization_endpoint}?${params.toString()}`;
 }
@@ -117,4 +140,70 @@ export function oibIzTokena(payload: Record<string, unknown>): { oib: string | n
 		if (v) return { oib: v, izvor };
 	}
 	return { oib: null, izvor: 'none' };
+}
+
+/**
+ * Vrijednosti step-up podataka u obliku koji spremamo. Oblici su izmjereni u ZEF-u
+ * 21. 9. 2026.: datumi stižu kao ISO datetime (`…T00:00:00Z`), adresa (`formatted`)
+ * kao niz redaka, `organization` kao base64 JSON niz.
+ */
+export function stepUpVrijednosti(payload: Record<string, unknown>, trazi: StepUpPodatak[]): Map<StepUpPodatak, string> {
+	const out = new Map<StepUpPodatak, string>();
+	for (const p of trazi) {
+		const v = vrijednost(p, payload);
+		if (v) out.set(p, v);
+	}
+	return out;
+}
+
+function vrijednost(p: StepUpPodatak, payload: Record<string, unknown>): string | null {
+	switch (p) {
+		case 'birthdate': {
+			const m = /^(\d{4}-\d{2}-\d{2})/.exec(str(payload.birthdate) ?? '');
+			return m ? m[1] : null;
+		}
+		case 'address': {
+			const a = payload.address as Record<string, unknown> | undefined;
+			return joinLines(payload.formatted) ?? joinLines(a?.formatted) ?? str(a?.street_address);
+		}
+		case 'organization': {
+			const org = parseOrganizations(payload.organization);
+			if (org.length) return JSON.stringify(org);
+			const name = str(payload.org_name);
+			const vat = str(payload.org_vat);
+			return name || vat ? JSON.stringify([{ name, vat }]) : null;
+		}
+		default:
+			return str(payload[p]);
+	}
+}
+
+function joinLines(value: unknown): string | null {
+	if (Array.isArray(value)) {
+		const parts = value.map(str).filter((v): v is string => v !== null);
+		return parts.length ? parts.join(', ') : null;
+	}
+	return str(value);
+}
+
+/** Jedna osoba može zastupati više pravnih osoba; `vat` je OIB škole ili tvrtke. */
+function parseOrganizations(raw: unknown): { name: string | null; vat: string | null }[] {
+	const s = str(raw);
+	if (!s) return [];
+	try {
+		// TextDecoder, ne goli atob(), da dijakritici u nazivu ostanu ispravni.
+		const bytes = Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+		const parsed = JSON.parse(new TextDecoder().decode(bytes));
+		return Array.isArray(parsed)
+			? parsed.map((o: Record<string, unknown>) => ({ name: str(o.name), vat: str(o.vat) }))
+			: [];
+	} catch {
+		console.warn('organization claim nije base64 JSON niz');
+		return [];
+	}
+}
+
+/** Poveznica kojom funkcija traži podatak koji još nemamo: `stepUpUrl(['birthdate'], '/bodovi')`. */
+export function stepUpUrl(trazi: StepUpPodatak[], natrag: string): string {
+	return `/auth/certilia/start?${new URLSearchParams({ trazi: trazi.join(','), natrag }).toString()}`;
 }

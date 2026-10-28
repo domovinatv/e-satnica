@@ -24,7 +24,7 @@ iz `~/git/zef/zef-certilia-worker` (rujan 2026.), najzrelijeg od lokalnih izvora
 | Grant Types | `authorization_code` |
 | Callback URL | `https://e-satnica.domovina.ai/auth/certilia/callback` — znakovno točno, bez završnog `/` |
 | Back channel URL | prazno |
-| User data want to receive | vidi [certilia-podaci.md](certilia-podaci.md) |
+| User data want to receive | Email, First name, Last name, OIB/PIN, Birthdate, Address, Country, Mobile, Gender, Organization (bez Photo i 4 polja dokumenta; [zašto](certilia-podaci.md)) |
 | Mandatory user data | `pin`, `firstname`, `lastname` — ništa više, inače prijava pada svakome tko odbije |
 | Access token / refresh token / ID token expiration | 3600 / 86400 / 3600 |
 

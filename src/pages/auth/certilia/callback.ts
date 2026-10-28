@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env, waitUntil } from 'cloudflare:workers';
 import { sha256Hex } from '../../../lib/certilia/crypto';
-import { exchangeCode, oibIzTokena, str, verifyIdToken } from '../../../lib/certilia/oidc';
+import { exchangeCode, oibIzTokena, parsirajTrazi, stepUpVrijednosti, str, verifyIdToken } from '../../../lib/certilia/oidc';
 import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash } from '../../../lib/sesija';
 
 export const prerender = false;
@@ -13,6 +13,7 @@ interface Tok {
 	nonce: string;
 	natrag: string;
 	debug: number;
+	trazi: string;
 	created_at: number;
 }
 
@@ -83,7 +84,20 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		.bind(hash, ime, prezime)
 		.first<{ id: number }>();
 
-	zapisi('sesija', true, { oibHash: hash, claimovi });
+	// Spremaju se samo podaci koje je funkcija izričito tražila ovim step-upom.
+	const podaci = stepUpVrijednosti(payload, parsirajTrazi(tok.trazi));
+	if (korisnik && podaci.size) {
+		await env.DB.batch(
+			[...podaci].map(([podatak, v]) =>
+				env.DB.prepare(
+					`INSERT INTO korisnik_podaci (korisnik_id, podatak, vrijednost) VALUES (?, ?, ?)
+					 ON CONFLICT (korisnik_id, podatak) DO UPDATE SET vrijednost = excluded.vrijednost, dohvaceno_at = datetime('now')`,
+				).bind(korisnik.id, podatak, v),
+			),
+		);
+	}
+
+	zapisi(tok.trazi ? `sesija+${tok.trazi}` : 'sesija', true, { oibHash: hash, claimovi });
 	cookies.set(KOLACIC, await napraviSesiju({ ime: `${ime} ${prezime}`, korisnikId: korisnik?.id ?? null }), kolacicOpcije);
 	return redirect(tok.natrag);
 };

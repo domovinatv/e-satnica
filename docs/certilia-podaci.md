@@ -80,17 +80,61 @@ Zbirno: **3 polja odmah, 6 kasnije uz konkretnu funkciju, 5 nikad** dok se ne
 pojavi zakonska obveza. Proširenje forme traje minutu, a opravdanje se ne može
 naknadno dopisati podacima koji su već skupljeni.
 
-## Preporuka za formu
+## Kompromis: široka registracija, uzak zahtjev, step-up
 
-- **Mandatory:** `pin`, `firstname`, `lastname`. Ništa drugo: svaka dodatna stavka
-  znači da se netko tko je odbije ne može prijaviti.
-- **Want to receive:** OIB/PIN, First name, Last name, Birthdate, Address, Email,
-  Organization. Mobile tek ako se odlučimo za SMS/WhatsApp obavijesti.
-- **Ne označavati:** Country, Gender, Photo i sva četiri polja dokumenta.
+Problem koji izbjegavamo: 10.000 korisnika je unutra, a funkciji zatreba polje
+koje nije u registraciji kod Certilije. Ako promjena produkcijske registracije
+traži odobrenje AKD-a, to može trajati tjednima (nepotvrđeno).
 
-Proširenje kasnije je jednostavno: polje se doda u formu i u `CLAIMS_REQUEST`
-kad funkcija koja ga treba uđe u specifikaciju, uz obavijest korisnicima zašto.
-Suprotan smjer, skupiti sve pa smisliti svrhu, nije dopušten.
+Zato su tri razine odvojene:
+
+| Razina | Gdje | Što sadrži | Mijenja se |
+|---|---|---|---|
+| **Gornja granica** | Certilia forma, „Want to receive" | sve s realnom budućom funkcijom (9 polja) | jednom, sada |
+| **Obavezno** | Certilia forma, „Mandatory" | samo identitet: `pin`, `firstname`, `lastname` | nikad |
+| **Stvarni zahtjev** | kod, `claims` parametar | osnovna prijava: OIB, ime, prezime | uz svaku novu funkciju |
+| **Step-up** | `/auth/certilia/start?trazi=…` | podatak koji funkcija treba, u trenutku kad ga treba | — |
+
+Polje u gornjoj granici koje kod ne traži i ne sprema nije prikupljeno. Obrađuje
+se tek kad ga funkcija zatraži step-upom, s obaviješću korisniku zašto.
+
+Zašto naknadno dohvaćanje nije katastrofa:
+
+- Sesija traje 30 dana i refresh token ne koristimo, pa se svi ionako redovno
+  ponovno prijavljuju Certilijom; nitko ne mora biti „prisiljen".
+- Step-up traži podatak jednim klikom kad korisnik otvori funkciju koja ga treba
+  (npr. bodovanje → datum rođenja). Pristanak je tada razumljiv i čvršći.
+- Adresa mora biti svježa pri zaključavanju raspodjele (oko 15. kolovoza), pa bi
+  adresa iz onboardinga ionako bila zastarjela. `korisnik_podaci.dohvaceno_at`
+  govori koliko je podatak star.
+
+### Kako funkcija traži podatak
+
+```ts
+import { stepUpUrl } from '../lib/certilia/oidc';
+// nema datuma rođenja u korisnik_podaci → pošalji korisnika po njega
+return Astro.redirect(stepUpUrl(['birthdate'], '/bodovi'));
+```
+
+Dopušteni podaci (`STEP_UP` u `src/lib/certilia/oidc.ts`): `birthdate`, `address`,
+`email`, `mobile`, `organization`, `gender`, `country`. Sve ostalo se odbacuje.
+Spremaju se u `korisnik_podaci` samo podaci zatraženi u tom step-upu.
+
+## Što označiti u Certilijinoj formi (konačno)
+
+**User data your application want to receive:**
+Email, First name, Last name, OIB/PIN, Birthdate, Address, Country, Mobile,
+Gender, Organization.
+
+**Ne označavati:** Photo, Document type, Document number, Document issuing
+country, Document expiration date. Za njih nema ni buduće svrhe, a to su upravo
+podaci za krađu identiteta.
+
+**Mandatory user data your application require:** `pin`, `firstname`, `lastname`.
+
+Otvoreno: prikazuje li Certilijin ekran za pristanak cijelu gornju granicu ili
+samo ono što kod traži. Provjeriti na prvoj prijavi (`?debug=1`). Ako prikazuje
+cijelu granicu, razmisliti o sužavanju na ono što je u specifikaciji.
 
 ## Za pravnicu
 
