@@ -174,10 +174,12 @@ Prezimena ne treba dirati.
 
 **Otvorena odluka:** adresa kao Mandatory bi je predoznačila, ali bi je tražila od
 svakoga pri svakoj prijavi, a tko odbije, ne ulazi. Preporuka: Mandatory tek kad
-modul raspodjele (pravilo 50 km) postane stvaran; do tada `/dopuna`. U kodu je
-`essential` još uključen (bezopasan, ali nedjelotvoran); vratiti na `null`.
+modul raspodjele (pravilo 50 km) postane stvaran; do tada `/dopuna`. Step-up
+claimovi su od 28. 10. opet `null`; `essential` ostaje samo na `pin`.
 
 ## Tijek prijave za upute korisnicima
+
+Javna stranica s ovim koracima: `/upute` (`src/pages/upute.astro`, izrezane slike u `public/upute/`).
 
 1. Certilia prijava (e-mail ili OIB i lozinka): `slike/certilia-1-prijava.png`
 2. Potvrda u aplikaciji Certilia mobileID na mobitelu: `slike/certilia-2-mobileid.png`

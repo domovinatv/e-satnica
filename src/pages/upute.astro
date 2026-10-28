@@ -1,0 +1,84 @@
+---
+import Osnova from '../layouts/Osnova.astro';
+
+export const prerender = false;
+
+// Javna stranica: link na nju ide u WhatsApp grupu, prije nego što se itko prijavio.
+const KORACI = [
+	{
+		slika: '/upute/1-prijava.jpg',
+		visina: 670,
+		alt: 'Certilijin ekran za prijavu: e-mail ili OIB i lozinka',
+		tekst: 'Upiši e-mail ili OIB i lozinku svog Certilia računa pa klikni Continue. Jezik se mijenja gore desno (EN → HR).',
+	},
+	{
+		slika: '/upute/2-mobileid.jpg',
+		visina: 900,
+		alt: 'Certilijin ekran koji čeka potvrdu u aplikaciji mobileID',
+		tekst: 'Na mobitelu otvori obavijest aplikacije Certilia mobileID i potvrdi prijavu. Imaš oko minutu.',
+	},
+	{
+		slika: '/upute/3-pristanak.jpg',
+		visina: 1220,
+		alt: 'Certilijin ekran za pristanak: Ime i Prezime su označeni, ostala polja nisu',
+		tekst: 'Ime i Prezime su već označeni i to je sve što trebamo. Ostale kvačice ne diraj, samo klikni Allow.',
+	},
+];
+---
+
+<Osnova naslov="Upute za prijavu">
+	<h1>Kako se prijaviti</h1>
+	<p>
+		U e-satnicu se ulazi preko <strong>Certilije</strong>, istog sustava kojim se prijavljuješ u e-Građane. Tako
+		znamo da je svaki račun stvarna osoba i da nitko ne piše dvaput.
+	</p>
+	<p class="meta">
+		Treba ti Certilia račun i aplikacija Certilia mobileID na mobitelu. Ako ih nemaš, javi se u grupu; dok ne
+		prijeđemo potpuno na Certiliju, može se ući i kodom tima.
+	</p>
+
+	<a class="gumb" href="/prijava">Idi na prijavu</a>
+
+	<ol class="koraci">
+		<li><p>Na stranici za prijavu klikni <strong>Prijava s Certilijom</strong>.</p></li>
+		{
+			KORACI.map((k) => (
+				<li>
+					<p>{k.tekst}</p>
+					<img src={k.slika} alt={k.alt} width="520" height={k.visina} />
+				</li>
+			))
+		}
+		<li><p>Vraća te u e-satnicu, na specifikaciju. Gotovo.</p></li>
+	</ol>
+
+	<h2>Što spremamo</h2>
+	<p>
+		Ime i prezime, da se vidi tko je što napisao. OIB ne spremamo; spremamo samo njegov nepovratni otisak, da ista
+		osoba uvijek dobije isti račun. Ako ikad zatrebamo još neki podatak (npr. datum rođenja za bodovanje), aplikacija
+		će te prije toga pitati i reći koju kvačicu označiti.
+	</p>
+</Osnova>
+
+<style>
+	.gumb {
+		display: inline-block;
+		margin: 8px 0 16px;
+		padding: 12px 20px;
+		border-radius: 8px;
+		background: var(--plava);
+		color: #fff;
+		font-weight: 600;
+		text-decoration: none;
+	}
+	.koraci { padding-left: 22px; }
+	.koraci li { margin-bottom: 20px; }
+	.koraci img {
+		display: block;
+		max-width: 100%;
+		width: 360px;
+		height: auto;
+		border: 1px solid var(--rub);
+		border-radius: 10px;
+	}
+</style>

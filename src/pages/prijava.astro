@@ -46,6 +46,7 @@ if (Astro.request.method === 'POST' && kodTima) {
 			</a>
 		)
 	}
+	{certilia && <p class="meta"><a href="/upute">Kako se prijaviti (sa slikama)</a></p>}
 	{certiliaGreska && <p class="greska">{GRESKE[certiliaGreska] ?? `Prijava nije uspjela (${certiliaGreska}).`}</p>}
 	{
 		debugClaimovi && (

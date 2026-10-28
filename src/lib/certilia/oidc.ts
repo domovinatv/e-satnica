@@ -82,8 +82,8 @@ export function parsirajTrazi(raw: string | null | undefined): StepUpPodatak[] {
 function claimsZahtjev(trazi: StepUpPodatak[]) {
 	const idToken: Record<string, { essential: true } | null> = { pin: { essential: true } };
 	for (const c of OSNOVNI_CLAIMOVI.slice(1)) idToken[c] = null;
-	// Eksperiment 28. 10.: traženi podatak kao essential, da ga Certilia predoznači na ekranu.
-	for (const p of trazi) for (const c of STEP_UP[p]) idToken[c] = { essential: true };
+	// essential ne predoznačava polje na Certilijinom ekranu (izmjereno 28. 10.); to radi /dopuna.
+	for (const p of trazi) for (const c of STEP_UP[p]) idToken[c] = null;
 	return { id_token: idToken };
 }
 
