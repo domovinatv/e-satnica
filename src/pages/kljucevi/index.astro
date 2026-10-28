@@ -1,0 +1,116 @@
+---
+import { env } from 'cloudflare:workers';
+import Osnova from '../../layouts/Osnova.astro';
+import { razlogOdbijanja } from '../../lib/passkey';
+import { sigurnoNatrag } from '../../lib/sesija';
+
+export const prerender = false;
+
+const sesija = Astro.locals.sesija;
+const korisnikId = sesija?.korisnikId ?? null;
+const p = Astro.url.searchParams;
+// ponuda=1: korisnik dolazi ravno iz Certilia prijave i nema nijedan ključ.
+const ponuda = p.get('ponuda') === '1';
+const natrag = sigurnoNatrag(p.get('natrag'));
+
+if (Astro.request.method === 'POST' && korisnikId) {
+	const forma = await Astro.request.formData();
+	await env.DB.prepare('DELETE FROM passkeyi WHERE id = ? AND korisnik_id = ?').bind(String(forma.get('id')), korisnikId).run();
+	return Astro.redirect('/kljucevi', 303);
+}
+
+const kljucevi = korisnikId
+	? (
+			await env.DB.prepare(
+				'SELECT id, naziv, created_at, zadnje_koristen FROM passkeyi WHERE korisnik_id = ? ORDER BY created_at',
+			)
+				.bind(korisnikId)
+				.all<{ id: string; naziv: string; created_at: string; zadnje_koristen: string | null }>()
+		).results
+	: [];
+const odbijeno = await razlogOdbijanja(sesija);
+const datum = (d: string | null) => (d ? new Date(`${d}Z`).toLocaleDateString('hr-HR', { timeZone: 'Europe/Zagreb' }) : '—');
+---
+
+<Osnova naslov="Pristupni ključevi">
+	{
+		ponuda ? (
+			<>
+				<h1>Brži ulaz sljedeći put?</h1>
+				<p>
+					Možeš dodati <strong>pristupni ključ</strong> (passkey) na ovaj uređaj. Sljedeći put ulaziš otiskom prsta,
+					licem ili PIN-om uređaja, bez Certilije i mobileID-a.
+				</p>
+			</>
+		) : (
+			<>
+				<h1>Pristupni ključevi</h1>
+				<p>
+					Pristupni ključ (passkey) je brži ulaz u e-satnicu: otisak prsta, lice ili PIN uređaja umjesto Certilije.
+					Dodaje se nakon prijave Certilijom.
+				</p>
+			</>
+		)
+	}
+
+	{
+		!korisnikId ? (
+			<p class="kartica">
+				Ova sesija je otvorena kodom tima. Ključ se može dodati tek nakon{' '}
+				<a href="/auth/certilia/start?natrag=%2Fkljucevi">prijave Certilijom</a>.
+			</p>
+		) : odbijeno ? (
+			<p class="kartica">
+				{odbijeno}{' '}
+				{!odbijeno.startsWith('Najviše') && <a href="/auth/certilia/start?natrag=%2Fkljucevi">Prijavi se Certilijom</a>}
+			</p>
+		) : (
+			<form id="passkey-upis" class="kartica" data-passkey data-natrag={ponuda ? natrag : '/kljucevi'}>
+				<label for="naziv">Naziv uređaja</label>
+				<input id="naziv" name="naziv" placeholder="npr. moj mobitel" maxlength="80" />
+				<button type="submit">Dodaj pristupni ključ</button>
+				<p id="passkey-poruka" class="greska" hidden></p>
+			</form>
+		)
+	}
+	{ponuda && <p class="meta"><a href={`/kljucevi/preskoci?natrag=${encodeURIComponent(natrag)}`}>Ne sada</a></p>}
+
+	{
+		kljucevi.length > 0 && (
+			<>
+				<h2>Tvoji ključevi</h2>
+				<table>
+					<thead>
+						<tr><th>Naziv</th><th>Dodan</th><th>Zadnja prijava</th><th></th></tr>
+					</thead>
+					<tbody>
+						{kljucevi.map((k) => (
+							<tr>
+								<td>{k.naziv}</td>
+								<td>{datum(k.created_at)}</td>
+								<td>{datum(k.zadnje_koristen)}</td>
+								<td>
+									<form method="post">
+										<input type="hidden" name="id" value={k.id} />
+										<button type="submit" class="obrisi">Obriši</button>
+									</form>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+				<p class="meta">
+					Brisanje ovdje ne briše ključ s uređaja; ukloni ga i u postavkama lozinki uređaja da ga više ne nudi.
+				</p>
+			</>
+		)
+	}
+</Osnova>
+
+<script>
+	import '../../lib/passkey-klijent';
+</script>
+
+<style>
+	.obrisi { margin: 0; padding: 4px 10px; font-size: 14px; background: none; color: #dc2626; border: 1px solid var(--rub); }
+</style>

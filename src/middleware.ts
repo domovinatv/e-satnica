@@ -13,5 +13,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	}
 	context.locals.ime = sesija.ime;
 	context.locals.korisnikId = sesija.korisnikId;
+	context.locals.sesija = sesija;
 	return next();
 });

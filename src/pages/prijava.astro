@@ -29,7 +29,7 @@ if (Astro.request.method === 'POST' && kodTima) {
 	} else if (!kodJeIspravan(String(podaci.get('kod') ?? ''))) {
 		greska = 'Kod nije ispravan.';
 	} else {
-		Astro.cookies.set(KOLACIC, await napraviSesiju({ ime, korisnikId: null }), kolacicOpcije);
+		Astro.cookies.set(KOLACIC, await napraviSesiju({ ime, korisnikId: null, nacin: 'kod', od: Date.now() }), kolacicOpcije);
 		return Astro.redirect(natrag);
 	}
 }
@@ -47,6 +47,13 @@ if (Astro.request.method === 'POST' && kodTima) {
 		)
 	}
 	{certilia && <p class="meta"><a href="/upute">Kako se prijaviti (sa slikama)</a></p>}
+	<div data-passkey>
+		<button id="passkey-prijava" type="button" class="sporedni" data-natrag={natrag}>
+			Prijava pristupnim ključem
+		</button>
+		<p class="meta">Ako je ključ na ovom uređaju već dodan nakon prijave Certilijom.</p>
+		<p id="passkey-poruka" class="greska" hidden></p>
+	</div>
 	{certiliaGreska && <p class="greska">{GRESKE[certiliaGreska] ?? `Prijava nije uspjela (${certiliaGreska}).`}</p>}
 	{
 		debugClaimovi && (
@@ -75,6 +82,10 @@ if (Astro.request.method === 'POST' && kodTima) {
 	}
 </Osnova>
 
+<script>
+	import '../lib/passkey-klijent';
+</script>
+
 <style>
 	.gumb {
 		display: inline-block;
@@ -85,5 +96,11 @@ if (Astro.request.method === 'POST' && kodTima) {
 		color: #fff;
 		font-weight: 600;
 		text-decoration: none;
+	}
+	.sporedni {
+		margin: 0 0 4px;
+		background: none;
+		color: var(--plava);
+		border: 1px solid var(--plava);
 	}
 </style>

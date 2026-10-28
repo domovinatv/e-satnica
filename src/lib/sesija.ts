@@ -9,6 +9,9 @@ const TRAJANJE_S = 60 * 60 * 24 * 30;
 export interface Sesija {
 	ime: string;
 	korisnikId: number | null;
+	// Stari kolačići nemaju ova polja; tada se tretiraju kao prijava koja nije svježa.
+	nacin?: 'certilia' | 'passkey' | 'kod';
+	od?: number; // epoch ms prijave
 }
 
 export const kolacicOpcije = {

@@ -2,6 +2,7 @@ declare namespace App {
 	interface Locals {
 		ime?: string;
 		korisnikId?: number | null;
+		sesija?: import('./lib/sesija').Sesija;
 	}
 }
 
