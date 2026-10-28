@@ -35,8 +35,9 @@ Step-up podaci (datum rođenja, adresa…) i dalje idu samo preko Certilije.
    `navigator.credentials.get` → `/auth/passkey/prijava` → sesija `nacin: 'passkey'`.
 4. `/kljucevi` (link „Ključevi" u zaglavlju): popis, brisanje, dodavanje.
 
-Sesija ima `nacin` (`certilia` | `passkey` | `kod`) i `od` (epoch ms). Stari kolačići
-bez tih polja vrijede kao prijava koja nije svježa.
+Sesija ima `nacin` (`certilia` | `passkey`) i `od` (epoch ms). Stari kolačići
+bez tih polja vrijede kao prijava koja nije svježa; kolačić bez `korisnikId` (ukinuta
+prijava kodom tima) ne vrijedi uopće.
 
 ## Provjereno (28. 10. 2026., lokalno, Chrome s virtualnim autentifikatorom preko CDP-a)
 

@@ -13,6 +13,7 @@ susjednom repou `e-satnica-sastanci`.
 - Čitanje i trijaža: `scripts/stavke.sh` (vidi `--help`).
 
 Prijava: Login with Certilia ([docs/certilia.md](docs/certilia.md)), nakon nje po želji pristupni ključ ([docs/passkey.md](docs/passkey.md)).
+Tko se prijavio, s koliko ključeva i koje prijave nisu uspjele: `scripts/prijave.sh`.
 
 ## Razvoj
 
