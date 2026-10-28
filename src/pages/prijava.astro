@@ -1,7 +1,7 @@
 ---
 import Osnova from '../layouts/Osnova.astro';
 import { certiliaJePodesena } from '../lib/certilia/oidc';
-import { KOLACIC, kodJeIspravan, kodTimaDopusten, kolacicOpcije, napraviSesiju, sigurnoNatrag } from '../lib/sesija';
+import { sigurnoNatrag } from '../lib/sesija';
 
 export const prerender = false;
 
@@ -16,23 +16,8 @@ const GRESKE: Record<string, string> = {
 const p = Astro.url.searchParams;
 const natrag = sigurnoNatrag(p.get('natrag'));
 const certilia = certiliaJePodesena();
-const kodTima = kodTimaDopusten();
 const certiliaGreska = p.get('certilia_greska');
 const debugClaimovi = p.get('certilia_claimovi');
-let greska = '';
-
-if (Astro.request.method === 'POST' && kodTima) {
-	const podaci = await Astro.request.formData();
-	const ime = String(podaci.get('ime') ?? '').trim().slice(0, 80);
-	if (!ime) {
-		greska = 'Upiši ime i prezime.';
-	} else if (!kodJeIspravan(String(podaci.get('kod') ?? ''))) {
-		greska = 'Kod nije ispravan.';
-	} else {
-		Astro.cookies.set(KOLACIC, await napraviSesiju({ ime, korisnikId: null, nacin: 'kod', od: Date.now() }), kolacicOpcije);
-		return Astro.redirect(natrag);
-	}
-}
 ---
 
 <Osnova naslov="Prijava">
@@ -64,20 +49,6 @@ if (Astro.request.method === 'POST' && kodTima) {
 					OIB iz: {p.get('oib_izvor')}, 11 znamenki: {p.get('oib_11_znamenki')}
 				</div>
 			</div>
-		)
-	}
-
-	{
-		kodTima && (
-			<form method="post">
-				{certilia && <p class="meta">Ili privremeno, kodom tima iz WhatsApp grupe:</p>}
-				<label for="ime">Ime i prezime</label>
-				<input id="ime" name="ime" autocomplete="name" required />
-				<label for="kod">Kod tima</label>
-				<input id="kod" name="kod" type="password" required />
-				{greska && <p class="greska">{greska}</p>}
-				<button type="submit">Uđi</button>
-			</form>
 		)
 	}
 </Osnova>

@@ -56,7 +56,7 @@ je stigao OIB, bez ijedne vrijednosti. Izmjereno u ZEF-u (14. i 21. 9. 2026.):
 - `certilia_tokovi`: stanje toka (ključ `sha256(state)`), briše se pri callbacku, istječe za 10 min.
 - `prijave`: revizija svake prijave, s imenima claimova bez vrijednosti.
 
-Kad Certilia proradi za cijeli tim: `npx wrangler secret delete TIM_KOD` gasi prijavu kodom.
+Prijava kodom tima (`TIM_KOD`) ukinuta je 28. 10. 2026.; ulazi se samo Certilijom ili pristupnim ključem.
 
 ## Vezani dokumenti
 

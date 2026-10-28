@@ -12,13 +12,13 @@ susjednom repou `e-satnica-sastanci`.
 - Prihvaćene stavke skupljaju se u `paketi`; jedan paket = jedna iteracija razvoja.
 - Čitanje i trijaža: `scripts/stavke.sh` (vidi `--help`).
 
-Prijava: Login with Certilia ([docs/certilia.md](docs/certilia.md)), nakon nje po želji pristupni ključ ([docs/passkey.md](docs/passkey.md)); privremeno i ime + kod tima (secret `TIM_KOD`).
+Prijava: Login with Certilia ([docs/certilia.md](docs/certilia.md)), nakon nje po želji pristupni ključ ([docs/passkey.md](docs/passkey.md)).
 
 ## Razvoj
 
 ```sh
 npm install
-printf 'TIM_KOD=lokalni-kod\nSESIJA_KLJUC=lokalni-kljuc\nAPP_ORIGIN=http://localhost:4321\n' > .dev.vars
+printf 'SESIJA_KLJUC=lokalni-kljuc\nAPP_ORIGIN=http://localhost:4321\n' > .dev.vars
 npx wrangler d1 migrations apply e-satnica --local
 npm run dev
 ```

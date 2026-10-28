@@ -1,5 +1,5 @@
 // Sesija u potpisanom kolačiću (HMAC ključem SESIJA_KLJUC). Nastaje prijavom preko
-// Certilije ili, dok je TIM_KOD postavljen, privremeno imenom i kodom tima.
+// Certilije ili pristupnim ključem.
 import { env } from 'cloudflare:workers';
 import { base64url, hmacSha256Hex } from './certilia/crypto';
 
@@ -10,7 +10,7 @@ export interface Sesija {
 	ime: string;
 	korisnikId: number | null;
 	// Stari kolačići nemaju ova polja; tada se tretiraju kao prijava koja nije svježa.
-	nacin?: 'certilia' | 'passkey' | 'kod';
+	nacin?: 'certilia' | 'passkey';
 	od?: number; // epoch ms prijave
 }
 
@@ -36,7 +36,9 @@ export async function procitajSesiju(vrijednost: string | undefined): Promise<Se
 	try {
 		const json = atob(tijelo.replace(/-/g, '+').replace(/_/g, '/'));
 		const bytes = Uint8Array.from(json, (c) => c.charCodeAt(0));
-		return JSON.parse(new TextDecoder().decode(bytes)) as Sesija;
+		const sesija = JSON.parse(new TextDecoder().decode(bytes)) as Sesija;
+		// Sesije bez korisnika otvorene su ukinutim kodom tima.
+		return sesija.korisnikId ? sesija : null;
 	} catch {
 		return null;
 	}
@@ -45,14 +47,6 @@ export async function procitajSesiju(vrijednost: string | undefined): Promise<Se
 /** OIB se nikad ne sprema, samo ovaj otisak. */
 export function oibHash(oib: string): Promise<string> {
 	return hmacSha256Hex(env.SESIJA_KLJUC, `oib:${oib}`);
-}
-
-export function kodTimaDopusten(): boolean {
-	return Boolean(env.TIM_KOD);
-}
-
-export function kodJeIspravan(kod: string): boolean {
-	return kodTimaDopusten() && kod.trim() === env.TIM_KOD;
 }
 
 /** Samo putanje na istom originu smiju biti odredište nakon prijave. */

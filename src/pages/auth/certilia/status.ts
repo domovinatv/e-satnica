@@ -19,7 +19,6 @@ export const GET: APIRoute = async () => {
 			clientId: Boolean(env.CERTILIA_CLIENT_ID),
 			clientSecret: Boolean(env.CERTILIA_CLIENT_SECRET),
 			sesijaKljuc: Boolean(env.SESIJA_KLJUC),
-			kodTima: Boolean(env.TIM_KOD),
 		},
 	});
 };
