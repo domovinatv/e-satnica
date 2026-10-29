@@ -14,9 +14,16 @@ export const GET: APIRoute = async ({ url, redirect }) => {
 	const codeVerifier = randomBase64url(64);
 	const trazi = parsirajTrazi(url.searchParams.get('trazi'));
 
-	// Stari nedovršeni tokovi (stariji od 10 min) se usput čiste.
+	// Stari nedovršeni tokovi (stariji od 10 min) se usput čiste. Prije brisanja
+	// ostave trag u `prijave`: netko je kliknuo, a s Certilije se nije vratio.
+	const istekli = Date.now() - 10 * 60 * 1000;
 	await env.DB.batch([
-		env.DB.prepare('DELETE FROM certilia_tokovi WHERE created_at < ?').bind(Date.now() - 10 * 60 * 1000),
+		env.DB.prepare(
+			`INSERT INTO prijave (created_at, ishod, ok)
+			 SELECT datetime(created_at / 1000, 'unixepoch'), 'napusten' || iif(trazi = '', '', '+' || trazi), 0
+			 FROM certilia_tokovi WHERE created_at < ? AND debug = 0`,
+		).bind(istekli),
+		env.DB.prepare('DELETE FROM certilia_tokovi WHERE created_at < ?').bind(istekli),
 		// Ključ je hash, pa procurjela tablica ne daje upotrebljiv state.
 		env.DB.prepare(
 			'INSERT INTO certilia_tokovi (state_hash, code_verifier, nonce, natrag, debug, trazi, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
