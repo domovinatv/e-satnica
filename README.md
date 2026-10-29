@@ -3,7 +3,12 @@
 Aplikacija za transparentnu nadopunu satnice, zbrinjavanje viškova i zamjene
 radnih mjesta nastavnika. Astro + Cloudflare Workers + D1, na
 <https://e-satnica.domovina.ai>. Arhiva sastanaka i istraživanja je u
-susjednom repou `e-satnica-sastanci`.
+susjednom, privatnom repou `e-satnica-sastanci`.
+
+Kod je otvoren od prvog dana (MIT, vidi [LICENSE](LICENSE)): kriteriji
+bodovanja i raspodjele moraju biti javno provjerljivi, inače je transparentnost
+samo privid. Javni su kod i specifikacija; podaci korisnika i komentari tima
+ostaju u bazi iza prijave Certilijom.
 
 ## Specifikacija i feedback tima
 
