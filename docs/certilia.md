@@ -55,6 +55,11 @@ je stigao OIB, bez ijedne vrijednosti. Izmjereno u ZEF-u (14. i 21. 9. 2026.):
 - `korisnici`: OIB se ne sprema, samo `HMAC-SHA256(oib, SESIJA_KLJUC)`, plus ime i prezime.
 - `certilia_tokovi`: stanje toka (ključ `sha256(state)`), briše se pri callbacku, istječe za 10 min.
 - `prijave`: revizija svake prijave, s imenima claimova bez vrijednosti.
+  Tok koji je istekao bez callbacka (klik na gumb, pa zatvoren tab ili zapelo u
+  mobileID-u) upisuje se kao `napusten` s vremenom klika, kad ga sljedeći klik
+  počisti; zato se pojavi tek uz idući pokušaj bilo koga. Debug tokovi se ne
+  upisuju. Prije 29. 10. 2026. takvi su se klikovi brisali bez traga (prvi
+  zabilježen: 28. 10. 18:29 UTC, tko nije poznato).
 
 Prijava kodom tima (`TIM_KOD`) ukinuta je 28. 10. 2026.; ulazi se samo Certilijom ili pristupnim ključem.
 
