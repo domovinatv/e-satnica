@@ -2,11 +2,11 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 import { randomBase64url, sha256Hex } from '../../../lib/certilia/crypto';
 import { buildAuthorizeUrl, certiliaJePodesena, parsirajTrazi } from '../../../lib/certilia/oidc';
-import { sigurnoNatrag } from '../../../lib/sesija';
+import { pokusajOpcije, POKUSAJ_KOLACIC, sigurnoNatrag } from '../../../lib/sesija';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url, redirect }) => {
+export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	if (!certiliaJePodesena()) return redirect('/prijava?certilia_greska=nije_podesena');
 
 	const state = randomBase64url(32);
@@ -38,5 +38,6 @@ export const GET: APIRoute = async ({ url, redirect }) => {
 		),
 	]);
 
+	cookies.set(POKUSAJ_KOLACIC, '1', pokusajOpcije);
 	return redirect(await buildAuthorizeUrl({ state, nonce, codeVerifier, trazi }));
 };

@@ -22,6 +22,11 @@ export const kolacicOpcije = {
 	maxAge: TRAJANJE_S,
 };
 
+// Postavlja se kad tok prema Certiliji krene, briše kad se vrati uspješno. Tko je
+// na /prijava s ovim kolačićem, otišao je na Certiliju i nije se prijavio.
+export const POKUSAJ_KOLACIC = 'esatnica_certilia_pokusaj';
+export const pokusajOpcije = { ...kolacicOpcije, maxAge: 60 * 60 * 24 };
+
 export async function napraviSesiju(sesija: Sesija): Promise<string> {
 	const tijelo = base64url(new TextEncoder().encode(JSON.stringify(sesija)));
 	return `${tijelo}.${await hmacSha256Hex(env.SESIJA_KLJUC, tijelo)}`;

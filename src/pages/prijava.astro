@@ -1,7 +1,7 @@
 ---
 import Osnova from '../layouts/Osnova.astro';
 import { certiliaJePodesena } from '../lib/certilia/oidc';
-import { sigurnoNatrag } from '../lib/sesija';
+import { POKUSAJ_KOLACIC, sigurnoNatrag } from '../lib/sesija';
 
 export const prerender = false;
 
@@ -18,6 +18,9 @@ const natrag = sigurnoNatrag(p.get('natrag'));
 const certilia = certiliaJePodesena();
 const certiliaGreska = p.get('certilia_greska');
 const debugClaimovi = p.get('certilia_claimovi');
+// Vratio se s Certilije bez prijave (greška, odustao ili napustio pa došao natrag).
+const nijeUspjelo = certilia && (Boolean(certiliaGreska) || Astro.cookies.has(POKUSAJ_KOLACIC));
+const VODIC = 'https://vodic.domovina.ai/?app=e-satnica';
 ---
 
 <Osnova naslov="Prijava">
@@ -31,7 +34,13 @@ const debugClaimovi = p.get('certilia_claimovi');
 			</a>
 		)
 	}
-	{certilia && <p class="meta"><a href="/upute">Kako se prijaviti (sa slikama)</a></p>}
+	{
+		certilia && (
+			<p class="meta">
+				<a href={VODIC}>Nemaš Certiliju ili ne znaš lozinku?</a> · <a href="/upute">Kako se prijaviti</a>
+			</p>
+		)
+	}
 	<div data-passkey>
 		<button id="passkey-prijava" type="button" class="sporedni" data-natrag={natrag}>
 			Prijava pristupnim ključem
@@ -40,6 +49,18 @@ const debugClaimovi = p.get('certilia_claimovi');
 		<p id="passkey-poruka" class="greska" hidden></p>
 	</div>
 	{certiliaGreska && <p class="greska">{GRESKE[certiliaGreska] ?? `Prijava nije uspjela (${certiliaGreska}).`}</p>}
+	{
+		nijeUspjelo && (
+			<div class="kartica">
+				<strong>Prijava s Certilijom nije prošla?</strong>
+				<p class="meta">
+					Najčešće fali aplikacija Certilia mobileID ili lozinka Certilia računa. Vodič kroz nekoliko pitanja pokaže
+					što ti treba i vrati te ovamo.
+				</p>
+				<a href={VODIC}>Otvori vodič</a>
+			</div>
+		)
+	}
 	{
 		debugClaimovi && (
 			<div class="kartica">

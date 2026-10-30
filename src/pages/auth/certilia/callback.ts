@@ -3,7 +3,7 @@ import { env, waitUntil } from 'cloudflare:workers';
 import { sha256Hex } from '../../../lib/certilia/crypto';
 import { exchangeCode, oibIzTokena, parsirajTrazi, stepUpVrijednosti, str, verifyIdToken } from '../../../lib/certilia/oidc';
 import { brojKljuceva, PRESKOCI_KOLACIC } from '../../../lib/passkey';
-import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash } from '../../../lib/sesija';
+import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash, POKUSAJ_KOLACIC } from '../../../lib/sesija';
 
 export const prerender = false;
 
@@ -104,6 +104,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		await napraviSesiju({ ime: `${ime} ${prezime}`, korisnikId: korisnik?.id ?? null, nacin: 'certilia', od: Date.now() }),
 		kolacicOpcije,
 	);
+	cookies.delete(POKUSAJ_KOLACIC, { path: '/' });
 	// Tko još nema pristupni ključ, dobije ponudu odmah, dok je prijava svježa.
 	if (korisnik && !tok.trazi && !cookies.has(PRESKOCI_KOLACIC) && (await brojKljuceva(korisnik.id)) === 0) {
 		return redirect(`/kljucevi?ponuda=1&natrag=${encodeURIComponent(tok.natrag)}`);
