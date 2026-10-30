@@ -89,3 +89,4 @@ Vremena u `prijave` i `korisnici` su UTC.
 
 - [certilia-podaci.md](certilia-podaci.md): koje podatke tražimo, step-up, izmjereni ekran za pristanak
 - [passkey.md](passkey.md): pristupni ključ kao brži ulaz nakon prijave Certilijom
+- [aaieduhr.md](aaieduhr.md): AAI@EduHr (`@skole.hr`) kao drugi način prijave, dokaz da je korisnik djelatnik škole
