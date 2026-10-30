@@ -12,14 +12,22 @@ ostaju u bazi iza prijave Certilijom.
 
 ## Tko vodi
 
-- **Upstream:** [`domovinatv/e-satnica`](https://github.com/domovinatv/e-satnica).
-  Pravna osoba koja vodi uslugu i integracije (Certilia, AAI@EduHr) je
+Isti kod živi u dva neovisna repoa na GitHubu, koji ne znaju jedan za drugi:
+
+- [`domovinatv/e-satnica`](https://github.com/domovinatv/e-satnica): pravna
+  osoba koja vodi uslugu i integracije (Certilia, AAI@EduHr) je
   **ITalk d.o.o. za informacijske tehnologije**, OIB 54872935051,
   IX. Južna obala 20, 10000 Zagreb (MBS 081042440, Trgovački sud u Zagrebu).
-- **Fork:** [`most-hrvatska/e-satnica`](https://github.com/most-hrvatska/e-satnica),
-  za MOST Hrvatska, koji može za svoju instancu zasebno tražiti Certiliju i
+- [`most-hrvatska/e-satnica`](https://github.com/most-hrvatska/e-satnica): za
+  MOST Hrvatska, koji za svoju instancu može zasebno tražiti Certiliju i
   AAI@EduHr.
-- Pull requestovi idu na upstream.
+
+Lokalno `origin` ima oba push URL-a, pa jedan `git push` ide u oba:
+
+```sh
+git remote set-url --add --push origin git@github.com:domovinatv/e-satnica.git
+git remote set-url --add --push origin git@github.com:most-hrvatska/e-satnica.git
+```
 
 ## Specifikacija i feedback tima
 
