@@ -18,6 +18,23 @@ bodovanje i raspodjela sati odnose se na nastavnike i škole.
   (Pravilnik, čl. 23). CARNET radi i e-Maticu.
 - Obje su na Josipa Marohnića 5, Zagreb.
 
+## Kako to radi e-Matica
+
+`https://matica.mzom.hr/login` nudi dvije prijave: **NIAS** (e-Građani, u kojem
+je Certilia jedan od načina) i **AAI@EduHr** (preusmjerava na
+`login.aaiedu.hr`, korisničko ime i lozinka). Provjereno 30. 10. 2026.
+
+U javnom popisu usluga (`aaiedu.hr/usluge/3775`, „e-Matica MZOM") davatelj je
+CARNET, protokol SAML, a atributi samo `displayName`, `givenName`, `sn`,
+`hrEduPersonOIB` („povezivanje s lokalnim računom") i
+`hrEduPersonPersistentID`. Škola i uloga dakle ne dolaze iz AAI-ja nego iz
+vlastite baze e-Matice, spojene preko OIB-a.
+
+Starija usluga „e-Matice" (`aaiedu.hr/usluge/147`, CARNET) primala je i
+`hrEduPersonRole`, `hrEduPersonStaffCategory`, `hrEduPersonTitle`, `o`,
+`hrEduOrgUniqueNumber`. CARNET-ov imenik `@skole.hr` te podatke dakle ima;
+pitanje je hoće li ih AAI@EduHr isporučiti nama i koliko su ažurni.
+
 ## Tehnika (OIDC)
 
 Iz `https://login.aaiedu.hr/.well-known/openid-configuration`:
