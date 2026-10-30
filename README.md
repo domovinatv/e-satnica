@@ -14,7 +14,8 @@ ostaju u bazi iza prijave Certilijom.
 
 - **Upstream:** [`domovinatv/e-satnica`](https://github.com/domovinatv/e-satnica).
   Pravna osoba koja vodi uslugu i integracije (Certilia, AAI@EduHr) je
-  **ITalk d.o.o.**
+  **ITalk d.o.o. za informacijske tehnologije**, OIB 54872935051,
+  IX. Južna obala 20, 10000 Zagreb (MBS 081042440, Trgovački sud u Zagrebu).
 - **Fork:** [`most-hrvatska/e-satnica`](https://github.com/most-hrvatska/e-satnica),
   za MOST Hrvatska, koji može za svoju instancu zasebno tražiti Certiliju i
   AAI@EduHr.
