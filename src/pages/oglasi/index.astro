@@ -1,0 +1,277 @@
+---
+import RedakOglasa from '../../components/RedakOglasa.astro';
+import Oglasnik from '../../layouts/Oglasnik.astro';
+import {
+	citajFiltere,
+	danas,
+	filtriraj,
+	imaFiltere,
+	naslovPopisa,
+	OPSEZI,
+	PODRUCJA,
+	POREDCI,
+	poredaj,
+	RAZINE,
+	ucitajOglase,
+	UGOVORI,
+} from '../../lib/oglasi';
+
+export const prerender = false;
+
+const filteri = citajFiltere(Astro.url.searchParams);
+const sada = danas();
+const svi = await ucitajOglase();
+const nadeni = poredaj(filtriraj(svi, filteri), filteri.poredak);
+const otvoreni = nadeni.filter((o) => o.rok >= sada);
+const istekli = nadeni.filter((o) => o.rok < sada).sort((a, b) => b.rok.localeCompare(a.rok));
+const predmeti = [...new Set(svi.map((o) => o.predmet))].sort((a, b) => a.localeCompare(b, 'hr'));
+const naslov = naslovPopisa(otvoreni.length, filteri);
+
+const IZBORNICI = [
+	{ ime: 'predmet', oznaka: 'Predmet', opcije: predmeti.map((p) => [p, p]), odabrano: filteri.predmet },
+	{ ime: 'podrucje', oznaka: 'Područje', opcije: Object.entries(PODRUCJA), odabrano: filteri.podrucje },
+	{ ime: 'opseg', oznaka: 'Satnica', opcije: Object.entries(OPSEZI), odabrano: filteri.opseg },
+	{ ime: 'ugovor', oznaka: 'Ugovor', opcije: Object.entries(UGOVORI), odabrano: filteri.ugovor },
+	{ ime: 'razina', oznaka: 'Škola', opcije: Object.entries(RAZINE), odabrano: filteri.razina },
+];
+---
+
+<Oglasnik naslov="Slobodni sati u školama">
+	<form id="filteri" action="/oglasi" method="get">
+		<header class="more">
+			<div class="sirina unutra">
+				<h1>{naslov}</h1>
+				<p class="uvod">Neslužben popis javnih natječaja za učitelje i stručne suradnike. Prijava ide izravno školi.</p>
+				<div class="trazi">
+					<input
+						type="search"
+						name="q"
+						value={filteri.q}
+						placeholder="Predmet, škola ili mjesto"
+						aria-label="Pretraži natječaje po predmetu, školi ili mjestu"
+					/>
+					<button type="submit">Traži</button>
+				</div>
+			</div>
+		</header>
+		<div class="traka">
+			<div class="sirina izbornici">
+				{
+					IZBORNICI.map((i) => (
+						<select name={i.ime} aria-label={i.oznaka} class:list={['izbor', { aktivan: i.odabrano }]}>
+							<option value="">{i.oznaka}</option>
+							{i.opcije.map(([vrijednost, tekst]) => (
+								<option value={vrijednost} selected={vrijednost === i.odabrano}>
+									{tekst}
+								</option>
+							))}
+						</select>
+					))
+				}
+				{imaFiltere(filteri) && <a class="ponisti" href="/oglasi">Poništi</a>}
+				<select name="poredak" aria-label="Poredak" class="izbor poredak">
+					<option value="">Najskoriji rok</option>
+					{
+						Object.entries(POREDCI).map(([vrijednost, tekst]) => (
+							<option value={vrijednost} selected={vrijednost === filteri.poredak}>
+								{tekst}
+							</option>
+						))
+					}
+				</select>
+				<noscript><button type="submit" class="primijeni">Primijeni</button></noscript>
+			</div>
+		</div>
+	</form>
+
+	<main class="sirina">
+		{
+			otvoreni.length > 0 ? (
+				<ul class="popis">
+					{otvoreni.map((o) => (
+						<RedakOglasa oglas={o} sada={sada} />
+					))}
+				</ul>
+			) : (
+				<div class="prazno">
+					<p class="prazno-naslov">
+						{imaFiltere(filteri) ? 'Nema otvorenih natječaja za ove uvjete.' : 'Trenutno nema otvorenih natječaja.'}
+					</p>
+					{imaFiltere(filteri) ? (
+						<p>
+							Promijeni filtere ili <a href="/oglasi">pogledaj sve natječaje</a>.
+						</p>
+					) : (
+						<p>Novi natječaji pojavit će se ovdje čim ih škole objave.</p>
+					)}
+				</div>
+			)
+		}
+		{
+			istekli.length > 0 && (
+				<details class="istekli">
+					<summary>Nedavno istekli natječaji ({istekli.length})</summary>
+					<ul class="popis">
+						{istekli.map((o) => (
+							<RedakOglasa oglas={o} sada={sada} />
+						))}
+					</ul>
+				</details>
+			)
+		}
+	</main>
+</Oglasnik>
+
+<script>
+	const forma = document.querySelector<HTMLFormElement>('#filteri');
+	forma?.addEventListener('change', (e) => {
+		if (e.target instanceof HTMLSelectElement) forma.requestSubmit();
+	});
+	// Prazni filteri ne idu u adresu, da se poveznica može lako podijeliti.
+	forma?.addEventListener('formdata', (e) => {
+		for (const [ime, vrijednost] of [...e.formData]) {
+			if (!vrijednost) e.formData.delete(ime);
+		}
+	});
+</script>
+
+<style>
+	.more {
+		padding: 10px 0 20px;
+		background: var(--pozadina-mora);
+		color: var(--na-moru);
+	}
+	.unutra {
+		padding: 0 16px;
+	}
+	h1 {
+		margin: 0;
+		max-width: 28ch;
+		font-family: var(--serif);
+		font-size: clamp(30px, 6.4vw, 50px);
+		font-weight: 600;
+		line-height: 1.12;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+	.uvod {
+		max-width: 60ch;
+		margin: 10px 0 16px;
+		color: var(--na-moru-siva);
+	}
+	.trazi {
+		display: flex;
+		gap: 8px;
+		max-width: 560px;
+	}
+	.trazi input {
+		flex: 1;
+		min-width: 0;
+		height: 46px;
+		padding: 0 12px;
+		font: inherit;
+		color: #0f2342;
+		background: #ffffff;
+		border: 0;
+		border-radius: 6px;
+	}
+	.trazi input:focus-visible,
+	.trazi button:focus-visible {
+		outline: 3px solid var(--na-moru);
+	}
+	.trazi button {
+		height: 46px;
+		padding: 0 18px;
+		font: inherit;
+		font-weight: 600;
+		color: #0e3f8c;
+		background: #eaf1fb;
+		border: 0;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	.traka {
+		position: sticky;
+		top: 0;
+		z-index: 2;
+		background: var(--papir);
+		border-bottom: 1px solid var(--crta);
+	}
+	.izbornici {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 16px;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+	.izbor {
+		flex: none;
+		field-sizing: content;
+		max-width: 220px;
+		height: 38px;
+		padding: 0 30px 0 14px;
+		font: inherit;
+		font-size: 16px;
+		color: var(--tinta);
+		appearance: none;
+		background: var(--papir)
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%234f5f78' stroke-width='1.6'/%3E%3C/svg%3E")
+			no-repeat right 12px center;
+		border: 1px solid var(--crta);
+		border-radius: 999px;
+		cursor: pointer;
+	}
+	.izbor.aktivan {
+		font-weight: 600;
+		color: var(--more);
+		background-color: var(--nebo);
+		border-color: var(--more);
+	}
+	.poredak {
+		margin-left: auto;
+		border-color: transparent;
+	}
+	.ponisti {
+		flex: none;
+		font-size: 16px;
+		padding: 4px;
+	}
+	.primijeni {
+		flex: none;
+		height: 38px;
+		padding: 0 14px;
+		font: inherit;
+		font-weight: 600;
+		color: var(--na-moru);
+		background: #0e3f8c;
+		border: 0;
+		border-radius: 999px;
+	}
+	.popis {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.prazno {
+		padding: 40px 16px;
+	}
+	.prazno-naslov {
+		margin: 0 0 4px;
+		font-family: var(--serif);
+		font-size: 21px;
+		font-weight: 600;
+	}
+	.prazno p:last-child {
+		margin: 0;
+	}
+	.istekli {
+		margin-top: 24px;
+	}
+	.istekli summary {
+		padding: 12px 16px;
+		font-weight: 600;
+		color: var(--more);
+		cursor: pointer;
+	}
+</style>

@@ -1,0 +1,217 @@
+---
+import SatiMjerilo from '../../components/SatiMjerilo.astro';
+import Oglasnik from '../../layouts/Oglasnik.astro';
+import { danaDoRoka, danas, datum, oblik, opisSati, RAZINE, ucitajOglas, UGOVORI } from '../../lib/oglasi';
+
+export const prerender = false;
+
+const id = Number(Astro.params.id);
+const o = Number.isInteger(id) ? await ucitajOglas(id) : null;
+if (!o) Astro.response.status = 404;
+
+const dana = o ? danaDoRoka(o.rok, danas()) : 0;
+const istekao = dana < 0;
+---
+
+<Oglasnik naslov={o ? `${o.predmet}, ${o.skola}` : 'Natječaj nije pronađen'}>
+	{
+		o ? (
+			<main>
+				<header class="more">
+					<div class="sirina unutra">
+						<a class="natrag" href="/oglasi">Svi natječaji</a>
+						<h1>{o.predmet}</h1>
+						<p class="skola">
+							{o.skola}, {o.mjesto}
+						</p>
+					</div>
+				</header>
+				<div class="sirina sadrzaj">
+					<section class="satnica" aria-label="Satnica">
+						<SatiMjerilo sati={o.sati_tjedno} veliko />
+						<p class="sati-tekst">
+							{o.sati_tjedno < 40 ? `${opisSati(o.sati_tjedno)} tjedno` : opisSati(o.sati_tjedno)}
+						</p>
+					</section>
+
+					<p class:list={['stanje', { hitno: !istekao && dana <= 2 }]}>
+						{istekao ? (
+							<>Rok je istekao {datum(o.rok, true)}</>
+						) : (
+							<>
+								{dana === 0 ? 'Danas je zadnji dan za prijavu' : `Za prijavu ${oblik(dana, 'ostaje', 'ostaju', 'ostaje')} još ${dana} ${oblik(dana, 'dan', 'dana', 'dana')}`}, do {datum(o.rok, true)}
+							</>
+						)}
+					</p>
+
+					<a class="gumb" href={o.izvor_url} rel="noopener">
+						Otvori natječaj na stranici škole
+					</a>
+
+					<dl>
+						<div>
+							<dt>Ugovor</dt>
+							<dd>{UGOVORI[o.ugovor]}</dd>
+						</div>
+						{o.trajanje && (
+							<div>
+								<dt>Trajanje</dt>
+								<dd>{o.trajanje}</dd>
+							</div>
+						)}
+						{o.izvrsitelja > 1 && (
+							<div>
+								<dt>Broj mjesta</dt>
+								<dd>{o.izvrsitelja}</dd>
+							</div>
+						)}
+						<div>
+							<dt>Mjesto rada</dt>
+							<dd>{o.mjesto_rada ?? `${o.adresa}, ${o.mjesto}`}</dd>
+						</div>
+						<div>
+							<dt>Škola</dt>
+							<dd>{RAZINE[o.razina]}</dd>
+						</div>
+						<div>
+							<dt>Objavljeno</dt>
+							<dd>{datum(o.objavljeno, true)}</dd>
+						</div>
+						<div>
+							<dt>Rok za prijavu</dt>
+							<dd>
+								{datum(o.rok, true)}
+								{o.rok_izracunat === 1 && (
+									<p class="napomena">Izračunali smo ga kao osam dana od objave. Točan rok provjeri u natječaju.</p>
+								)}
+							</dd>
+						</div>
+					</dl>
+
+					<section class="izvorno">
+						<h2>U natječaju piše</h2>
+						<blockquote>{o.izvorni_opis}</blockquote>
+						<p class="napomena">Prijava se šalje školi, prema uputama u natječaju. Ovdje se ne možeš prijaviti.</p>
+					</section>
+				</div>
+			</main>
+		) : (
+			<main class="sirina prazno">
+				<h1 class="prazno-naslov">Ovaj natječaj nije u popisu.</h1>
+				<p>
+					Možda je povučen ili je poveznica pogrešna. <a href="/oglasi">Pogledaj sve natječaje</a>.
+				</p>
+			</main>
+		)
+	}
+</Oglasnik>
+
+<style>
+	.more {
+		padding: 10px 0 24px;
+		background: var(--pozadina-mora);
+		color: var(--na-moru);
+	}
+	.unutra {
+		padding: 0 16px;
+	}
+	.natrag {
+		display: inline-block;
+		margin-bottom: 16px;
+		color: var(--na-moru-siva);
+	}
+	.natrag:focus-visible {
+		outline-color: var(--na-moru);
+	}
+	h1 {
+		margin: 0;
+		font-family: var(--serif);
+		font-size: clamp(34px, 8vw, 60px);
+		font-weight: 600;
+		line-height: 1.08;
+		letter-spacing: -0.01em;
+	}
+	.skola {
+		margin: 8px 0 0;
+		font-size: 19px;
+		color: var(--na-moru-siva);
+	}
+	.sadrzaj {
+		padding: 24px 16px 0;
+	}
+	.satnica {
+		margin-bottom: 16px;
+	}
+	.sati-tekst {
+		margin: 8px 0 0;
+		font-family: var(--serif);
+		font-size: 24px;
+		font-weight: 600;
+	}
+	.stanje {
+		margin: 0 0 16px;
+		font-weight: 600;
+	}
+	.stanje.hitno {
+		color: var(--crveno);
+	}
+	.gumb {
+		display: inline-block;
+		padding: 12px 20px;
+		font-weight: 600;
+		color: #ffffff;
+		text-decoration: none;
+		background: #0e3f8c;
+		border-radius: 6px;
+	}
+	.gumb:hover {
+		background: #0b3270;
+	}
+	dl {
+		max-width: 620px;
+		margin: 32px 0 0;
+		border-top: 1px solid var(--crta);
+	}
+	dl div {
+		display: grid;
+		grid-template-columns: 136px minmax(0, 1fr);
+		gap: 12px;
+		padding: 10px 0;
+		border-bottom: 1px solid var(--crta);
+	}
+	dt {
+		color: var(--siva);
+	}
+	dd {
+		margin: 0;
+	}
+	.napomena {
+		margin: 4px 0 0;
+		font-size: 15px;
+		color: var(--siva);
+	}
+	.izvorno {
+		max-width: 620px;
+		margin-top: 32px;
+	}
+	.izvorno h2 {
+		margin: 0 0 8px;
+		font-family: var(--serif);
+		font-size: 21px;
+		font-weight: 600;
+	}
+	blockquote {
+		margin: 0 0 12px;
+		padding-left: 14px;
+		font-family: var(--serif);
+		line-height: 1.6;
+		border-left: 3px solid var(--crta);
+	}
+	.prazno {
+		padding: 40px 16px;
+	}
+	.prazno-naslov {
+		font-size: 30px;
+		margin-bottom: 8px;
+	}
+</style>

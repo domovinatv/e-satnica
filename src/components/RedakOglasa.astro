@@ -1,0 +1,154 @@
+---
+import { danaDoRoka, datum, oblik, opisSati, type Oglas } from '../lib/oglasi';
+import SatiMjerilo from './SatiMjerilo.astro';
+
+interface Props {
+	oglas: Oglas;
+	sada: string;
+}
+const { oglas: o, sada } = Astro.props;
+const dana = danaDoRoka(o.rok, sada);
+const istekao = dana < 0;
+const hitno = !istekao && dana <= 2;
+const ugovor = o.ugovor === 'neodredeno' ? 'Neodređeno' : o.trajanje ? 'Određeno, zamjena' : 'Određeno';
+const preostalo = dana === 0 ? 'Danas zadnji dan' : `Još ${dana} ${oblik(dana, 'dan', 'dana', 'dana')}`;
+---
+
+<li class:list={['redak', { istekao }]}>
+	<div class="glavno">
+		<h2 class="predmet">
+			<a href={`/oglasi/${o.id}`}>{o.predmet}</a>
+			{o.izvrsitelja > 1 && <span class="mjesta">{o.izvrsitelja} mjesta</span>}
+		</h2>
+		<p class="skola">{o.skola}, {o.mjesto_rada ?? o.mjesto}</p>
+	</div>
+	<div class="sati">
+		<SatiMjerilo sati={o.sati_tjedno} />
+		<span class="sati-tekst">{opisSati(o.sati_tjedno)}</span>
+	</div>
+	<p class="ugovor">{ugovor}</p>
+	{
+		istekao ? (
+			<p class="rok">Istekao {datum(o.rok)}</p>
+		) : (
+			<p class:list={['rok', { hitno }]}>
+				<strong>{preostalo}</strong>
+				<span>do {datum(o.rok)}</span>
+			</p>
+		)
+	}
+</li>
+
+<style>
+	.redak {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas: 'glavno rok' 'sati sati' 'ugovor ugovor';
+		gap: 6px 16px;
+		padding: 16px;
+		border-bottom: 1px solid var(--crta);
+	}
+	.redak:hover {
+		background: var(--nebo);
+	}
+	.glavno {
+		grid-area: glavno;
+		min-width: 0;
+	}
+	.predmet {
+		margin: 0;
+		font-family: var(--serif);
+		font-size: 21px;
+		font-weight: 600;
+		line-height: 1.25;
+	}
+	.predmet a {
+		color: var(--tinta);
+		text-decoration: none;
+	}
+	.predmet a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+	}
+	.predmet a:focus-visible {
+		outline: none;
+	}
+	.predmet a:focus-visible::after {
+		outline: 3px solid var(--more);
+		outline-offset: -3px;
+	}
+	.redak:hover .predmet a {
+		color: var(--more);
+	}
+	.mjesta {
+		font-family: var(--sans);
+		font-size: 15px;
+		font-weight: 400;
+		color: var(--siva);
+		white-space: nowrap;
+		margin-left: 6px;
+	}
+	.skola {
+		margin: 2px 0 0;
+		color: var(--siva);
+		font-size: 16px;
+	}
+	.sati {
+		grid-area: sati;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 4px 10px;
+		margin-top: 4px;
+		font-size: 15px;
+	}
+	.ugovor {
+		grid-area: ugovor;
+		margin: 0;
+		font-size: 15px;
+		color: var(--siva);
+	}
+	.rok {
+		grid-area: rok;
+		margin: 0;
+		text-align: right;
+		font-size: 15px;
+		line-height: 1.35;
+		color: var(--siva);
+	}
+	.rok strong {
+		display: block;
+		font-weight: 600;
+		color: var(--tinta);
+		white-space: nowrap;
+	}
+	.rok.hitno strong {
+		color: var(--crveno);
+	}
+	.istekao .predmet a,
+	.istekao .sati-tekst {
+		color: var(--siva);
+	}
+	@media (min-width: 880px) {
+		.redak {
+			grid-template-columns: minmax(0, 1fr) 224px 150px 130px;
+			grid-template-areas: 'glavno sati ugovor rok';
+			align-items: center;
+			gap: 24px;
+			padding: 14px 16px;
+		}
+		.sati {
+			display: block;
+			margin: 0;
+		}
+		.sati-tekst {
+			display: block;
+			margin-top: 2px;
+		}
+		.ugovor {
+			color: var(--tinta);
+		}
+	}
+</style>

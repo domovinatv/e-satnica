@@ -1,0 +1,38 @@
+---
+interface Props {
+	sati: number;
+	veliko?: boolean;
+}
+const { sati, veliko = false } = Astro.props;
+
+// Radni tjedan od 40 sati: pet dana po osam crtica, s razmakom između dana.
+const crtica = (i: number) => `M${i * 5 + Math.floor(i / 8) * 4 + 1.5} 0v16`;
+const sve = Array.from({ length: 40 }, (_, i) => i);
+const prazne = sve.slice(sati).map(crtica).join('');
+const pune = sve.slice(0, sati).map(crtica).join('');
+---
+
+<svg class:list={['mjerilo', { veliko }]} viewBox="0 0 214 16" preserveAspectRatio="none" role="img" aria-label={`${sati} od 40 sati tjedno`}>
+	<path class="prazne" d={prazne}></path>
+	<path class="pune" d={pune}></path>
+</svg>
+
+<style>
+	.mjerilo {
+		display: block;
+		width: 214px;
+		max-width: 100%;
+		height: 16px;
+		stroke-width: 3;
+	}
+	.veliko {
+		width: min(100%, 560px);
+		height: 40px;
+	}
+	.prazne {
+		stroke: var(--crta);
+	}
+	.pune {
+		stroke: var(--more);
+	}
+</style>

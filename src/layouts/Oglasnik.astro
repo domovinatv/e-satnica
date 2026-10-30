@@ -1,0 +1,123 @@
+---
+import '@fontsource-variable/literata/opsz.css';
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+
+interface Props {
+	naslov: string;
+	opis?: string;
+}
+const { naslov, opis = 'Otvoreni natječaji za učitelje i stručne suradnike u školama, na jednom mjestu.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="hr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="description" content={opis} />
+		<meta name="theme-color" content="#0e3f8c" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{naslov} · e-satnica</title>
+	</head>
+	<body>
+		<div class="vrh">
+			<a href="/oglasi" class="znak">e-satnica</a>
+		</div>
+		<slot />
+		<footer class="podnozje">
+			<p>
+				Ovo je neslužben pregled javno objavljenih natječaja, a nije usluga Ministarstva, županije ni škola. Podatke
+				prepisujemo iz natječaja, a mjerodavan je izvorni dokument škole.
+			</p>
+			<p>
+				Vodi ITalk d.o.o. Kod je otvoren na <a href="https://github.com/most-hrvatska/e-satnica">GitHubu</a>.
+				<a href="/privatnost">Privatnost</a>. <a href="/prijava">Prijava za tim</a>
+			</p>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	:root {
+		--papir: #ffffff;
+		--nebo: #eaf1fb;
+		--crta: #cfdcee;
+		--more: #0e3f8c;
+		--tinta: #0f2342;
+		--siva: #4f5f78;
+		--crveno: #b4261a;
+		--na-moru: #ffffff;
+		--na-moru-siva: #cfe0f7;
+		--pozadina-mora: #0e3f8c;
+		--serif: 'Literata Variable', Georgia, serif;
+		--sans: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+		color-scheme: light dark;
+	}
+	@media (prefers-color-scheme: dark) {
+		:root {
+			--papir: #0c1b33;
+			--nebo: #15294a;
+			--crta: #2b4570;
+			--more: #93b9ff;
+			--tinta: #e9f0fb;
+			--siva: #a6b7d0;
+			--crveno: #ff9d85;
+			--pozadina-mora: #12305f;
+		}
+	}
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+	body {
+		margin: 0;
+		font: 17px/1.5 var(--sans);
+		color: var(--tinta);
+		background: var(--papir);
+	}
+	a {
+		color: var(--more);
+	}
+	:focus-visible {
+		outline: 3px solid var(--more);
+		outline-offset: 2px;
+	}
+	.sirina {
+		max-width: 1120px;
+		margin: 0 auto;
+	}
+</style>
+
+<style>
+	.vrh {
+		padding-top: 14px;
+		background: var(--pozadina-mora);
+	}
+	.znak {
+		display: block;
+		max-width: 1120px;
+		margin: 0 auto;
+		padding: 0 16px;
+		font-family: var(--serif);
+		font-size: 20px;
+		font-weight: 700;
+		color: var(--na-moru);
+		text-decoration: none;
+	}
+	.znak:focus-visible {
+		outline-color: var(--na-moru);
+	}
+	.podnozje {
+		max-width: 1120px;
+		margin: 0 auto;
+		padding: 32px 16px 48px;
+		font-size: 15px;
+		color: var(--siva);
+	}
+	.podnozje p {
+		max-width: 72ch;
+		margin: 0 0 8px;
+	}
+</style>
