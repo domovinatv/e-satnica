@@ -76,9 +76,11 @@ Presedani: od 1085 javno popisanih usluga (`aaiedu.hr/usluge`) barem 35 imaju
 privatne davatelje (Microsoft Hrvatska, Profil Klett, Školska knjiga, STEMI,
 Udžbenik.hr, nekoliko j.d.o.o.).
 
-Rizik: pravna osoba. Zahtjev političke stranke Srce (javna ustanova) može
-odbiti kao stranačku svrhu; Pravilnik to izričito ne uređuje. Neutralna pravna
-osoba (tvrtka ili udruga) uz javan kod i javne kriterije je jači zahtjev.
+Pravna osoba: **ITalk d.o.o.** (odluka 30. 10. 2026.), ista koja je
+registrirala e-satnicu kod Certilije. Zahtjev političke stranke Srce (javna
+ustanova) moglo bi odbiti kao stranačku svrhu; Pravilnik to izričito ne
+uređuje. Fork `most-hrvatska/e-satnica` može za svoju instancu zasebno tražiti
+status partnera.
 
 ## Postupak
 
@@ -95,7 +97,6 @@ osoba (tvrtka ili udruga) uz javan kod i javne kriterije je jači zahtjev.
   i šalje li AAI sve njegove škole?
 - Može li se koristiti Fed-Lab prije statusa partnera?
 - Je li v1.3.1 aktualni Pravilnik (još spominje MZOŠ)?
-- Koja pravna osoba podnosi zahtjev.
 
 ## Izvori
 

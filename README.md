@@ -10,6 +10,16 @@ bodovanja i raspodjele moraju biti javno provjerljivi, inače je transparentnost
 samo privid. Javni su kod i specifikacija; podaci korisnika i komentari tima
 ostaju u bazi iza prijave Certilijom.
 
+## Tko vodi
+
+- **Upstream:** [`domovinatv/e-satnica`](https://github.com/domovinatv/e-satnica).
+  Pravna osoba koja vodi uslugu i integracije (Certilia, AAI@EduHr) je
+  **ITalk d.o.o.**
+- **Fork:** [`most-hrvatska/e-satnica`](https://github.com/most-hrvatska/e-satnica),
+  za MOST Hrvatska, koji može za svoju instancu zasebno tražiti Certiliju i
+  AAI@EduHr.
+- Pull requestovi idu na upstream.
+
 ## Specifikacija i feedback tima
 
 - Sadržaj specifikacije: `src/content/specifikacija/*.md` (jedna datoteka = jedna sekcija).
