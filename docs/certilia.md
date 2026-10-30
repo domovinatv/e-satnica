@@ -63,6 +63,28 @@ je stigao OIB, bez ijedne vrijednosti. Izmjereno u ZEF-u (14. i 21. 9. 2026.):
 
 Prijava kodom tima (`TIM_KOD`) ukinuta je 28. 10. 2026.; ulazi se samo Certilijom ili pristupnim ključem.
 
+## Načini prijave kod Certilije
+
+Za naš klijent Certilia nudi samo `authenticators=BasicAuthenticator:LOCAL`:
+e-mail ili OIB, lozinka Certilia računa, pa potvrda u aplikaciji mobileID.
+Prijave karticom/čitačem i smsID-a nema, iako ih `portal.certilia.com` ima
+(`x509CertificateAuthenticator`, `CreateAccountAuthenticator`). Popis određuje
+Certilia po klijentu. Provjereno 30. 10. 2026.:
+
+```bash
+u=$(curl -s -o /dev/null -w "%{redirect_url}" https://e-satnica.domovina.ai/auth/certilia/start)
+curl -s -o /dev/null -w "%{redirect_url}\n" "$u" | tr '&' '\n' | grep authenticators
+```
+
+Svaki takav poziv ostavi jedan `napusten` u `prijave`.
+
+Posljedica: tko u e-Građane ulazi čitačem osobne, kod nas ne može ući dok ne
+aktivira aplikaciju Certilia i ne postavi lozinku („Zaboravljena lozinka" + OIB).
+Prvoj korisnici iz tima to se dogodilo 30. 10. (pet napuštenih pokušaja).
+Vodič za cijeli taj put nastaje u zasebnom repou `domovinatv/vodic.domovina.ai`.
+
+Vremena u `prijave` i `korisnici` su UTC.
+
 ## Vezani dokumenti
 
 - [certilia-podaci.md](certilia-podaci.md): koje podatke tražimo, step-up, izmjereni ekran za pristanak
