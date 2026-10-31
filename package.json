@@ -11,7 +11,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "generate-types": "wrangler types"
+    "generate-types": "wrangler types",
+    "test": "node --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",

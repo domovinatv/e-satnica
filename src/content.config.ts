@@ -8,6 +8,8 @@ const specifikacija = defineCollection({
 		naslov: z.string(),
 		redoslijed: z.number(),
 		sazetak: z.string(),
+		// Prikaži bodovnu tablicu iz src/lib/bodovanje ispod teksta sekcije.
+		tablicaKriterija: z.boolean().optional(),
 	}),
 });
 

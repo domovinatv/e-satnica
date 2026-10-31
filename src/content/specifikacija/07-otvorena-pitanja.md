@@ -12,6 +12,9 @@ Odgovore upiši ispod kao **Odgovor na otvoreno pitanje** i navedi broj pitanja.
 2. Kako se dokazuju socijalni kriteriji i gdje se dokaz predaje?
 3. Na kojoj pravnoj osnovi smijemo koristiti podatke iz e-Matice?
 4. Tko rješava prigovore u roku od 48 sati i što ako ih bude mnogo?
+14. Kad su dvije osobe izjednačene po bodovima i svim pravilima prednosti iz nacrta v0: ždrijeb, datum prijave ili nešto treće?
+15. Može li se rok za prijavu potreba (15. 7.) i ograničenje zaposlenja bez natječaja na hitne slučajeve uvesti pravilnikom ili treba izmjena zakona?
+16. Koje se razlike u kolektivnim ugovorima za OŠ i SŠ moraju zadržati, a koje se mogu ujednačiti?
 
 ## Za ravnatelje
 

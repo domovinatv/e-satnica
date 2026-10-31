@@ -1,0 +1,45 @@
+---
+// Bodovna tablica iz src/lib/bodovanje/kriteriji.ts, da se tekst specifikacije i izračun ne mogu razići.
+import { opisPravila } from '../lib/bodovanje/bodovi';
+import { SDZ_2025, V0_NACRT } from '../lib/bodovanje/kriteriji';
+
+const sdz = new Map(SDZ_2025.kriteriji.map((k) => [k.kljuc, k]));
+const redovi = V0_NACRT.kriteriji.map((k) => {
+	const z = sdz.get(k.kljuc);
+	const nase = opisPravila(k);
+	const njihovo = z ? opisPravila(z) : 'nema u tablici';
+	return { naziv: k.naziv, nase, njihovo, razlika: z !== undefined && nase !== njihovo, napomena: k.napomena };
+});
+---
+
+<h2 id="tablica">Bodovna tablica ({V0_NACRT.verzija})</h2>
+<p class="meta">
+	Tablica se prikazuje izravno iz koda koji računa bodove
+	(<a href="https://github.com/domovinatv/e-satnica/blob/main/src/lib/bodovanje/kriteriji.ts"><code>src/lib/bodovanje/kriteriji.ts</code></a>),
+	pa ono što piše ovdje je i ono što se računa.
+</p>
+<table>
+	<thead>
+		<tr><th>Kriterij</th><th>Naš nacrt</th><th>{SDZ_2025.naziv}</th></tr>
+	</thead>
+	<tbody>
+		{
+			redovi.map((r) => (
+				<tr>
+					<td>
+						{r.naziv}
+						{r.napomena && <div class="meta">{r.napomena}</div>}
+					</td>
+					<td>{r.nase}</td>
+					<td>{r.razlika ? <strong>{r.njihovo}</strong> : r.njihovo}</td>
+				</tr>
+			))
+		}
+	</tbody>
+</table>
+
+<p><strong>Kod jednakog broja bodova</strong> prednost ima, redom:</p>
+<ol>
+	{V0_NACRT.kodJednakihBodova.map((p) => <li>{p.naziv}</li>)}
+	<li>ako je i dalje izjednačeno: otvoreno pitanje (ždrijeb ili datum prijave), slučaj se označava za ručnu provjeru</li>
+</ol>

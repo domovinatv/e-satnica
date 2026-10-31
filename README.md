@@ -48,5 +48,10 @@ npx wrangler d1 migrations apply e-satnica --local
 npm run dev
 ```
 
+Bodovanje (`src/lib/bodovanje/`) je čista funkcija bez I/O, s testovima:
+`npm test` (Node `--test`, bez dodatnih paketa). Bodovna tablica na
+`/specifikacija/03-kriteriji-bodovanja` prikazuje se iz istog koda.
+Dijagrami u specifikaciji su ```` ```mermaid ```` blokovi; crta ih preglednik.
+
 Deploy: `npm run build && npx wrangler deploy`. Migracije na produkciji:
 `npx wrangler d1 migrations apply e-satnica --remote`.
