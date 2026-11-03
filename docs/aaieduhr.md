@@ -1,6 +1,6 @@
 # AAI@EduHr kao drugi način prijave
 
-Istraženo 30. 10. 2026. Ništa još nije registrirano ni zatraženo.
+Istraženo 30. 10. 2026. Upit Srcu poslan 30. 10., odgovor 3. 11. (vidi „Odgovor Srca”). Partnerstvo još nije zatraženo.
 
 Certilia dokazuje da je korisnik stvarni građanin. AAI@EduHr (račun
 `ime.prezime@skole.hr`, kojim se učitelji prijavljuju u e-Maticu i e-Dnevnik)
@@ -59,7 +59,7 @@ Atributi zanimljivi e-satnici (scope = ime atributa):
 
 ## Tko smije biti davatelj usluge
 
-[Pravilnik o ustroju AAI@EduHr](https://wiki.srce.hr/download/attachments/65405172/AAI@EduHr-pravilnik-ver1.3.1.pdf), v1.3.1:
+[Pravilnik o ustroju AAI@EduHr](https://wiki.srce.hr/download/attachments/65405172/AAI@EduHr-pravilnik-ver1.3.1.pdf), v1.3.1 (aktualan, potvrdilo Srce 3. 11. 2026.; lokalna kopija [aaieduhr/AAI-EduHr-pravilnik-ver1.3.1.pdf](aaieduhr/AAI-EduHr-pravilnik-ver1.3.1.pdf), tekst u `.txt`):
 
 - čl. 31: „Davateljem usluge može postati svaka pravna osoba" koja pisano
   potvrdi da će se pridržavati Pravilnika. Tko nije matična ustanova, dobiva
@@ -91,12 +91,30 @@ status partnera.
    obrazloženjem). Client ID dodjeljuje AAI@EduHr.
 4. Razvoj i test u AAI@EduHr Fed-Lab, pa zahtjev za produkcijski status.
 
+## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
+
+1. Status partnera mogu tražiti samo pravne osobe, pa ITalk d.o.o. ispunjava uvjet.
+2. Atribute (OIDC scopeove) biramo sami u Registru resursa, uz javno objavljenu
+   namjenu za svaki. Upute: wiki „Registar resursa”, odjeljak „Namjene atributa”.
+3. Imenik `skole.hr` drukčiji je od ostatka sustava: za školu, ulogu i nastavnike
+   u više škola treba pitati **CARNET** (draft upita na `helpdesk@carnet.hr`, 3. 11.).
+4. **Nema Fed-Laba ni testa bez partnerstva**: svaka usluga, i testna, mora biti
+   vezana uz matičnu ustanovu ili partnera.
+5. Pravilnik v1.3.1 je aktualan.
+
+## Što iz Pravilnika utječe na dizajn
+
+- čl. 34: vrijednosti atributa **ne smijemo pohranjivati** osim u logovima s
+  navedenom svrhom i rokom. Školu i ulogu dakle čitamo pri svakoj prijavi, ne
+  spremamo ih kao trajni podatak iz AAI-ja. Ovo treba pitati Srce prije
+  implementacije: smijemo li spremiti vezu korisnik–škola.
+- čl. 32: imenovati odgovornu osobu ITalka za AAI@EduHr (obrazac Koordinatora).
+- čl. 41: partner sam snosi svoje troškove; naknada za partnerstvo se ne spominje.
+
 ## Otvoreno
 
-- Ima li učitelj koji radi u dvije škole jedan ili dva `@skole.hr` identiteta,
-  i šalje li AAI sve njegove škole?
-- Može li se koristiti Fed-Lab prije statusa partnera?
-- Je li v1.3.1 aktualni Pravilnik (još spominje MZOŠ)?
+- Što CARNET isporučuje iz `skole.hr` (škola, uloga, više škola).
+- Smijemo li trajno vezati korisnika uz školu (čl. 34).
 
 ## Izvori
 
