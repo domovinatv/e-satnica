@@ -1,6 +1,6 @@
 # AAI@EduHr kao drugi način prijave
 
-Istraženo 30. 10. 2026. Upit Srcu poslan 30. 10., odgovor 3. 11. (vidi „Odgovor Srca”). Partnerstvo još nije zatraženo.
+Istraženo 30. 10. 2026. Upit Srcu poslan 30. 10., odgovor 3. 11. (vidi „Odgovor Srca”). Zahtjev za status partnera podnesen 3. 11. (vidi „Stanje”).
 
 Certilia dokazuje da je korisnik stvarni građanin. AAI@EduHr (račun
 `ime.prezime@skole.hr`, kojim se učitelji prijavljuju u e-Maticu i e-Dnevnik)
@@ -90,6 +90,17 @@ status partnera.
    AAI@EduHr; registracija OIDC resursa (redirect URI, scopeovi s
    obrazloženjem). Client ID dodjeljuje AAI@EduHr.
 4. Razvoj i test u AAI@EduHr Fed-Lab, pa zahtjev za produkcijski status.
+
+## Stanje (3. 11. 2026.)
+
+- Zahtjev za dodjelom statusa ustanove partnera podnesen u `administracija.aaiedu.hr`
+  (prijava Google računom). Iz sustava se nakon podnošenja preuzme PDF obrasca; polje
+  „Titula, ime i prezime, funkcija ovlaštene osobe” je prazno i treba ga popuniti prije
+  potpisa. Potpisan kvalificiranim e-potpisom (Certilia, AKD ePotpis) i poslan mailom na
+  `aai@srce.hr` u tiketu #797385, uz pitanje prihvaćaju li e-potpis umjesto pošte
+  (obrazac navodi poštu: Srce, Josipa Marohnića 5, Zagreb).
+- Upit CARNET-u (`helpdesk@carnet.hr`) o atributima `skole.hr` poslan 3. 11.
+- Odluka Srca po čl. 26 u 8 dana od zaprimanja.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
