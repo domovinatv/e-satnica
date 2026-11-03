@@ -100,7 +100,8 @@ status partnera.
   `aai@srce.hr` u tiketu #797385, uz pitanje prihvaćaju li e-potpis umjesto pošte
   (obrazac navodi poštu: Srce, Josipa Marohnića 5, Zagreb).
 - Upit CARNET-u (`helpdesk@carnet.hr`) o atributima `skole.hr` poslan 3. 11.
-- Odluka Srca po čl. 26 u 8 dana od zaprimanja.
+- 3. 11. 13:05 Srce: „Dokumenti ovjereni e-potpisom mogu biti dostavljeni e-mailom. Uzet ćemo u proceduru dostavljeni zahtjev.” Poštanska dostava ne treba.
+- Odluka Srca po čl. 26 u 8 dana od zaprimanja (do ~11. 11. 2026.).
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
