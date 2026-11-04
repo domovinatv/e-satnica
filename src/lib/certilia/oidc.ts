@@ -2,23 +2,21 @@
 // gdje je tok izmjeren na stvarnim prijavama e-Osobnom. Zamke su opisane u
 // zef-new-website/analiza/12-certilia-registracija-i-worker.md i 17-certilia-claimovi-izmjereni.
 import { env } from 'cloudflare:workers';
-import * as jose from 'jose';
-import { codeChallengeS256 } from './crypto';
-
-interface Discovery {
-	issuer: string;
-	authorization_endpoint: string;
-	token_endpoint: string;
-	jwks_uri: string;
-}
+import { authorizeUrl, otkrij, provjeriIdToken, zamijeniKod, type OidcPostavke, type Tokeni } from '../oidc/klijent';
 
 /**
- * Discovery se kešira po izolatu. `issuer` za provjeru MORA doći odavde, nikad iz
- * CERTILIA_ISSUER_BASE: baza je https://idp.certilia.com, a `iss` u tokenu je
- * https://idp.certilia.com/oauth2/token. Ručno upisana baza ruši svaku provjeru.
+ * `issuer` za provjeru dolazi iz discoveryja, nikad iz CERTILIA_ISSUER_BASE: baza je
+ * https://idp.certilia.com, a `iss` u tokenu je https://idp.certilia.com/oauth2/token.
+ * Ručno upisana baza ruši svaku provjeru.
  */
-let cached: { at: number; discovery: Discovery; jwks: ReturnType<typeof jose.createRemoteJWKSet> } | null = null;
-const DISCOVERY_TTL_MS = 10 * 60 * 1000;
+function postavke(): OidcPostavke {
+	return {
+		discoveryUrl: `${env.CERTILIA_ISSUER_BASE}/oauth2/oidcdiscovery/.well-known/openid-configuration`,
+		clientId: env.CERTILIA_CLIENT_ID,
+		clientSecret: env.CERTILIA_CLIENT_SECRET,
+		redirectUri: redirectUri(),
+	};
+}
 
 export function certiliaJePodesena(): boolean {
 	return Boolean(env.CERTILIA_CLIENT_ID && env.CERTILIA_CLIENT_SECRET);
@@ -28,17 +26,8 @@ export function redirectUri(): string {
 	return `${env.APP_ORIGIN}/auth/certilia/callback`;
 }
 
-export async function getOidc() {
-	if (cached && Date.now() - cached.at < DISCOVERY_TTL_MS) return cached;
-
-	const res = await fetch(`${env.CERTILIA_ISSUER_BASE}/oauth2/oidcdiscovery/.well-known/openid-configuration`);
-	if (!res.ok) throw new Error('discovery_failed');
-	const discovery = (await res.json()) as Discovery;
-	if (!discovery.issuer || !discovery.jwks_uri || !discovery.token_endpoint) {
-		throw new Error('discovery_incomplete');
-	}
-	cached = { at: Date.now(), discovery, jwks: jose.createRemoteJWKSet(new URL(discovery.jwks_uri)) };
-	return cached;
+export function getOidc() {
+	return otkrij(postavke().discoveryUrl);
 }
 
 /**
@@ -87,60 +76,32 @@ function claimsZahtjev(trazi: StepUpPodatak[]) {
 	return { id_token: idToken };
 }
 
-export async function buildAuthorizeUrl(args: {
+export function buildAuthorizeUrl(args: {
 	state: string;
 	nonce: string;
 	codeVerifier: string;
 	trazi: StepUpPodatak[];
 }): Promise<string> {
-	const { discovery } = await getOidc();
-	const params = new URLSearchParams({
-		client_id: env.CERTILIA_CLIENT_ID,
-		redirect_uri: redirectUri(),
-		response_type: 'code',
-		scope: 'openid profile',
+	return authorizeUrl(postavke(), {
 		state: args.state,
 		nonce: args.nonce,
-		code_challenge: await codeChallengeS256(args.codeVerifier),
-		code_challenge_method: 'S256',
-		// Certilia pamti pristanak na podatke iz prve prijave (izmjereno 28. 10. 2026.):
-		// druga prijava pita samo za scope. Step-up zato traži ponovni ekran za pristanak.
-		prompt: args.trazi.length ? 'login consent' : 'login',
-		claims: JSON.stringify(claimsZahtjev(args.trazi)),
+		codeVerifier: args.codeVerifier,
+		scope: 'openid profile',
+		dodatno: {
+			// Certilia pamti pristanak na podatke iz prve prijave (izmjereno 28. 10. 2026.):
+			// druga prijava pita samo za scope. Step-up zato traži ponovni ekran za pristanak.
+			prompt: args.trazi.length ? 'login consent' : 'login',
+			claims: JSON.stringify(claimsZahtjev(args.trazi)),
+		},
 	});
-	return `${discovery.authorization_endpoint}?${params.toString()}`;
 }
 
-export async function exchangeCode(args: { code: string; codeVerifier: string }): Promise<{ id_token?: string }> {
-	const { discovery } = await getOidc();
-	const res = await fetch(discovery.token_endpoint, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: new URLSearchParams({
-			grant_type: 'authorization_code',
-			client_id: env.CERTILIA_CLIENT_ID,
-			client_secret: env.CERTILIA_CLIENT_SECRET,
-			code: args.code,
-			redirect_uri: redirectUri(),
-			code_verifier: args.codeVerifier,
-		}).toString(),
-	});
-	if (!res.ok) {
-		// Tijelo odgovora može ponoviti parametre zahtjeva, pa se logira samo status.
-		console.error('token_exchange_failed', { status: res.status });
-		throw new Error('token_exchange_failed');
-	}
-	return (await res.json()) as { id_token?: string };
+export function exchangeCode(args: { code: string; codeVerifier: string }): Promise<Tokeni> {
+	return zamijeniKod(postavke(), args);
 }
 
-export async function verifyIdToken(idToken: string, expectedNonce: string) {
-	const { discovery, jwks } = await getOidc();
-	const { payload } = await jose.jwtVerify(idToken, jwks, {
-		issuer: discovery.issuer,
-		audience: env.CERTILIA_CLIENT_ID,
-	});
-	if (payload.nonce !== expectedNonce) throw new Error('nonce_mismatch');
-	return payload as Record<string, unknown>;
+export function verifyIdToken(idToken: string, expectedNonce: string) {
+	return provjeriIdToken(postavke(), idToken, expectedNonce);
 }
 
 export function str(value: unknown): string | null {
