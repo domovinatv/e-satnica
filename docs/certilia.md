@@ -49,6 +49,11 @@ je stigao OIB, bez ijedne vrijednosti. Izmjereno u ZEF-u (14. i 21. 9. 2026.):
 - `issuer` u tokenu je `https://idp.certilia.com/oauth2/token`, ne baza; zato se čita iz discoveryja.
 - OIB (`pin`) stiže samo kroz `claims` parametar, ne kroz scope; e-Osobna ga šalje i kao `sub`.
 - Datumi stižu kao ISO datetime (`…T00:00:00Z`), adresa (`formatted`) kao niz redaka.
+- E-satnica, 4. 11. 2026. (produkcija, nakon prelaska na zajednički OIDC klijent): obična prijava
+  bez step-upa dobila je `acr,amr,at_hash,aud,azp,birthdate,c_hash,email,exp,family_name,formatted,
+  given_name,iat,iss,nbf,nonce,sub`. Nema `pin`, pa OIB dolazi iz `sub`. `birthdate`, `email` i
+  `formatted` stižu iako ih ta prijava nije tražila, jer Certilia pamti raniji pristanak. Ne spremaju
+  se: callback upisuje samo podatke koje je funkcija izričito zatražila (`trazi`).
 
 ## Podaci
 

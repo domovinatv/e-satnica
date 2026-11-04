@@ -82,6 +82,9 @@ u obrazovnom sustavu postoji samo kod CARNET-a, a za sve funkcije trebat će oba
   S256, jednokratni kodovi, userinfo) i prolazi cijeli tok te napade (krivi verifier,
   nonce, ključ, `aud`, secret). Ručno je provjeren i pravi Worker (`astro dev` +
   lažni IdP na fiksnom portu): novi račun, odbijen ponovljeni callback, spajanje.
+- Zamka pri ručnom testu: jose (`createRemoteJWKSet`) ponovno dohvaća JWKS za nepoznat `kid`
+  najviše jednom u 30 s. Ponovno pokrenut lažni IdP s novim ključem zato pola minute daje
+  `no applicable key found`. Na pravoj rotaciji ključa (novi `kid`) to je u redu.
 
 ### Namjene atributa (tekst za Registar resursa)
 
@@ -148,6 +151,9 @@ status partnera.
 - 4. 11. 09:19 deployano: backup produkcijskog D1 (izvan repoa), migracija 0005 prvo
   probana na kopiji backupa, pa puštena na produkciju (FK provjera čista), zatim deploy.
   Gumb je skriven dok nema secreta.
+- 4. 11. 09:32 E2E na produkciji (Brave, Matija): prijava Certilijom kroz novi kod prošla
+  (`sesija`, 379 ms, isti postojeći račun). Postupak deploya: [infrastruktura.md](infrastruktura.md).
+- **Ništa dalje do odobrenja**: čeka se Srce (račun u Registru resursa) i CARNET (atributi skole.hr).
 - Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
   upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
 
