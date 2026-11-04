@@ -11,5 +11,7 @@ declare namespace Cloudflare {
 		SESIJA_KLJUC: string;
 		CERTILIA_CLIENT_ID: string;
 		CERTILIA_CLIENT_SECRET: string;
+		AAI_CLIENT_ID: string;
+		AAI_CLIENT_SECRET: string;
 	}
 }

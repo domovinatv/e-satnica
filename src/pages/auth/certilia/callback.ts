@@ -1,22 +1,11 @@
 import type { APIRoute } from 'astro';
 import { env, waitUntil } from 'cloudflare:workers';
-import { sha256Hex } from '../../../lib/certilia/crypto';
 import { exchangeCode, oibIzTokena, parsirajTrazi, stepUpVrijednosti, str, verifyIdToken } from '../../../lib/certilia/oidc';
+import { uzmiTok } from '../../../lib/oidc/tok';
 import { brojKljuceva, PRESKOCI_KOLACIC } from '../../../lib/passkey';
-import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash, POKUSAJ_KOLACIC } from '../../../lib/sesija';
+import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash, POKUSAJ_KOLACIC, procitajSesiju } from '../../../lib/sesija';
 
 export const prerender = false;
-
-const TOK_TTL_MS = 10 * 60 * 1000;
-
-interface Tok {
-	code_verifier: string;
-	nonce: string;
-	natrag: string;
-	debug: number;
-	trazi: string;
-	created_at: number;
-}
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const pocetak = Date.now();
@@ -25,7 +14,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	// Svaki izlaz ostavlja trag u `prijave`; upis ide nakon odgovora.
 	const zapisi = (ishod: string, ok: boolean, extra: { oibHash?: string; claimovi?: string; greska?: string } = {}) =>
 		waitUntil(
-			env.DB.prepare('INSERT INTO prijave (ishod, ok, oib_hash, claimovi, trajanje_ms, greska) VALUES (?, ?, ?, ?, ?, ?)')
+			env.DB.prepare('INSERT INTO prijave (ishod, ok, oib_hash, claimovi, trajanje_ms, greska, davatelj) VALUES (?, ?, ?, ?, ?, ?, \'certilia\')')
 				.bind(ishod, ok ? 1 : 0, extra.oibHash ?? null, extra.claimovi ?? null, Date.now() - pocetak, extra.greska ?? null)
 				.run(),
 		);
@@ -40,11 +29,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const state = p.get('state');
 	if (!code || !state) return neuspjeh('nema_koda');
 
-	// Jednokratno: tok se briše prije ikakvog rada, pa ponovljeni callback ne nalazi ništa.
-	const tok = await env.DB.prepare('DELETE FROM certilia_tokovi WHERE state_hash = ? RETURNING *')
-		.bind(await sha256Hex(state))
-		.first<Tok>();
-	if (!tok || Date.now() - tok.created_at > TOK_TTL_MS) return neuspjeh('neispravan_state');
+	const tok = await uzmiTok('certilia', state);
+	if (!tok) return neuspjeh('neispravan_state');
 
 	let payload: Record<string, unknown>;
 	try {
@@ -76,6 +62,17 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const prezime = str(payload.family_name) ?? str(payload.lastname);
 	const hash = await oibHash(oib);
 	if (!ime || !prezime) return neuspjeh('nema_imena', { oibHash: hash, claimovi });
+
+	// Prijavljen s @skole.hr računom koji još nema OIB: Certilia ga potvrđuje i spaja.
+	// Ako taj OIB već ima drugi račun, ne dira se ništa i prijava ide na taj račun.
+	const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
+	if (vec?.korisnikId) {
+		await env.DB.prepare(
+			'UPDATE korisnici SET oib_hash = ?1 WHERE id = ?2 AND oib_hash IS NULL AND NOT EXISTS (SELECT 1 FROM korisnici WHERE oib_hash = ?1)',
+		)
+			.bind(hash, vec.korisnikId)
+			.run();
+	}
 
 	const korisnik = await env.DB.prepare(
 		`INSERT INTO korisnici (oib_hash, ime, prezime) VALUES (?, ?, ?)

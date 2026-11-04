@@ -15,6 +15,8 @@ export interface LazniIdpOpcije {
 	korisnik: Record<string, unknown>;
 	/** Koji claimovi idu u id_token (ostali samo na userinfo). Zadano: svi. */
 	uIdTokenu?: string[];
+	/** Zadano slučajan; fiksan za ručni test kad Worker mora unaprijed znati issuer. */
+	port?: number;
 }
 
 interface Kod {
@@ -36,14 +38,16 @@ export interface LazniIdp {
 
 export async function pokreniLazniIdp(o: LazniIdpOpcije): Promise<LazniIdp> {
 	const { privateKey, publicKey } = await jose.generateKeyPair('RS256');
-	const jwk = { ...(await jose.exportJWK(publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
+	// Novi kid po pokretanju, kao pri rotaciji ključa: klijent tada ponovno dohvati JWKS.
+	const kid = crypto.randomUUID();
+	const jwk = { ...(await jose.exportJWK(publicKey)), kid, alg: 'RS256', use: 'sig' };
 	const kodovi = new Map<string, Kod>();
 	const accessTokeni = new Map<string, string>(); // token → scope
 	let issuer = '';
 
 	const potpisi = (claimovi: Record<string, unknown>) =>
 		new jose.SignJWT(claimovi)
-			.setProtectedHeader({ alg: 'RS256', kid: 'k1' })
+			.setProtectedHeader({ alg: 'RS256', kid })
 			.setIssuer(issuer)
 			.setAudience((claimovi.aud as string | undefined) ?? o.clientId)
 			.setIssuedAt()
@@ -69,6 +73,19 @@ export async function pokreniLazniIdp(o: LazniIdpOpcije): Promise<LazniIdp> {
 			});
 		}
 		if (url.pathname === '/sso/module.php/oidc/jwks') return json(200, { keys: [jwk] });
+
+		// Preglednički ulaz (za ručni test pravog Workera): odmah „prijavi” i vrati na redirect_uri.
+		if (url.pathname === '/sso/module.php/oidc/authorization') {
+			try {
+				const { code, state } = await idp.prijavi(url.toString());
+				const natrag = new URL(o.redirectUri);
+				natrag.search = new URLSearchParams({ code, state }).toString();
+				res.writeHead(302, { Location: natrag.toString() });
+				return res.end();
+			} catch (e) {
+				return json(400, { error: 'invalid_request', error_description: (e as Error).message });
+			}
+		}
 
 		if (url.pathname === '/sso/module.php/oidc/token' && req.method === 'POST') {
 			let tijelo = '';
@@ -102,10 +119,10 @@ export async function pokreniLazniIdp(o: LazniIdpOpcije): Promise<LazniIdp> {
 		json(404, { error: 'not_found' });
 	});
 
-	await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+	await new Promise<void>((r) => server.listen(o.port ?? 0, '127.0.0.1', r));
 	issuer = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
-	return {
+	const idp: LazniIdp = {
 		issuer,
 		discoveryUrl: `${issuer}/.well-known/openid-configuration`,
 		async prijavi(authorizeUrl) {
@@ -129,4 +146,5 @@ export async function pokreniLazniIdp(o: LazniIdpOpcije): Promise<LazniIdp> {
 		potpisi,
 		zatvori: () => new Promise<void>((r) => server.close(() => r())),
 	};
+	return idp;
 }

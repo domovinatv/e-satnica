@@ -92,7 +92,8 @@ describe('OIDC tok protiv lažnog IdP-a', () => {
 			.setAudience(CLIENT.clientId)
 			.setExpirationTime('5m')
 			.sign(privateKey);
-		await assert.rejects(provjeriIdToken(p, lazan, 'n'), (e: Error) => e.name === 'JWSSignatureVerificationFailed');
+		// Isti kid kao pravi ključ (pa potpis ne prolazi) ili nepoznat kid (pa ključa nema): oboje se odbija.
+		await assert.rejects(provjeriIdToken(p, lazan, 'n'), (e: Error) => /^JWKSNoMatchingKey|^JWSSignatureVerificationFailed/.test(e.name));
 	});
 
 	test('token za drugu aplikaciju (aud) se odbije', async () => {

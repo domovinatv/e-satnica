@@ -1,5 +1,6 @@
 ---
 import Osnova from '../layouts/Osnova.astro';
+import { aaiJePodesena } from '../lib/aaieduhr/oidc';
 import { certiliaJePodesena } from '../lib/certilia/oidc';
 import { POKUSAJ_KOLACIC, sigurnoNatrag } from '../lib/sesija';
 
@@ -13,7 +14,18 @@ const GRESKE: Record<string, string> = {
 	nema_imena: 'Certilia nije poslala ime i prezime.',
 };
 
+const AAI_GRESKE: Record<string, string> = {
+	odustao: 'Prijava s @skole.hr je prekinuta.',
+	nije_podesena: 'Prijava s @skole.hr još nije podešena.',
+	neispravan_state: 'Prijava je istekla. Pokušaj ponovno.',
+	nema_identiteta: 'AAI@EduHr nije poslao identifikator računa.',
+	nema_imena: 'AAI@EduHr nije poslao ime i prezime.',
+};
+
 const p = Astro.url.searchParams;
+const aai = aaiJePodesena();
+const aaiGreska = p.get('aai_greska');
+const aaiDebug = p.get('aai_claimovi');
 const natrag = sigurnoNatrag(p.get('natrag'));
 const certilia = certiliaJePodesena();
 const certiliaGreska = p.get('certilia_greska');
@@ -28,8 +40,17 @@ const VODIC = 'https://vodic.domovina.ai/?app=e-satnica';
 	<p>Ovo je radni prostor tima e-satnice.</p>
 
 	{
+		aai && (
+			<a class="gumb" href={`/auth/aaieduhr/start?natrag=${encodeURIComponent(natrag)}`}>
+				Prijava s @skole.hr
+			</a>
+		)
+	}
+	{aai && <p class="meta">Račun ime.prezime@skole.hr (AAI@EduHr), isti kao za e-Dnevnik i e-Maticu.</p>}
+
+	{
 		certilia && (
-			<a class="gumb" href={`/auth/certilia/start?natrag=${encodeURIComponent(natrag)}`}>
+			<a class:list={['gumb', { sporedni: aai }]} href={`/auth/certilia/start?natrag=${encodeURIComponent(natrag)}`}>
 				Prijava s Certilijom
 			</a>
 		)
@@ -45,9 +66,10 @@ const VODIC = 'https://vodic.domovina.ai/?app=e-satnica';
 		<button id="passkey-prijava" type="button" class="sporedni" data-natrag={natrag}>
 			Prijava pristupnim ključem
 		</button>
-		<p class="meta">Ako je ključ na ovom uređaju već dodan nakon prijave Certilijom.</p>
+		<p class="meta">Ako je ključ na ovom uređaju već dodan nakon prijave.</p>
 		<p id="passkey-poruka" class="greska" hidden></p>
 	</div>
+	{aaiGreska && <p class="greska">{AAI_GRESKE[aaiGreska] ?? `Prijava s @skole.hr nije uspjela (${aaiGreska}).`}</p>}
 	{certiliaGreska && <p class="greska">{GRESKE[certiliaGreska] ?? `Prijava nije uspjela (${certiliaGreska}).`}</p>}
 	{
 		nijeUspjelo && (
@@ -68,6 +90,17 @@ const VODIC = 'https://vodic.domovina.ai/?app=e-satnica';
 				<div class="meta">Claimovi: {debugClaimovi}</div>
 				<div class="meta">
 					OIB iz: {p.get('oib_izvor')}, 11 znamenki: {p.get('oib_11_znamenki')}
+				</div>
+			</div>
+		)
+	}
+	{
+		aaiDebug && (
+			<div class="kartica">
+				<strong>AAI@EduHr debug</strong>
+				<div class="meta">Ključevi: {aaiDebug}</div>
+				<div class="meta">
+					Identitet iz: {p.get('aai_identitet')}, ime i prezime: {p.get('aai_ime')}, povezanost: {p.get('aai_povezanost')}
 				</div>
 			</div>
 		)

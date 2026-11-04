@@ -1,5 +1,5 @@
-// Sesija u potpisanom kolačiću (HMAC ključem SESIJA_KLJUC). Nastaje prijavom preko
-// Certilije ili pristupnim ključem.
+// Sesija u potpisanom kolačiću (HMAC ključem SESIJA_KLJUC). Nastaje prijavom s
+// @skole.hr (AAI@EduHr), preko Certilije ili pristupnim ključem.
 import { env } from 'cloudflare:workers';
 import { base64url, hmacSha256Hex } from './certilia/crypto';
 
@@ -10,8 +10,10 @@ export interface Sesija {
 	ime: string;
 	korisnikId: number | null;
 	// Stari kolačići nemaju ova polja; tada se tretiraju kao prijava koja nije svježa.
-	nacin?: 'certilia' | 'passkey';
+	nacin?: 'certilia' | 'aaieduhr' | 'passkey';
 	od?: number; // epoch ms prijave
+	/** hrEduPersonPrimaryAffiliation iz zadnje @skole.hr prijave; samo u kolačiću, ne u bazi (čl. 34). */
+	povezanost?: string | null;
 }
 
 export const kolacicOpcije = {
@@ -52,6 +54,11 @@ export async function procitajSesiju(vrijednost: string | undefined): Promise<Se
 /** OIB se nikad ne sprema, samo ovaj otisak. */
 export function oibHash(oib: string): Promise<string> {
 	return hmacSha256Hex(env.SESIJA_KLJUC, `oib:${oib}`);
+}
+
+/** Vanjski identifikator (npr. hrEduPersonPersistentID) se ne sprema, samo otisak. */
+export function identitetHash(davatelj: string, identitet: string): Promise<string> {
+	return hmacSha256Hex(env.SESIJA_KLJUC, `${davatelj}:${identitet}`);
 }
 
 /** Samo putanje na istom originu smiju biti odredište nakon prijave. */

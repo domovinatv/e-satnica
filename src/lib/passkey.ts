@@ -61,9 +61,10 @@ async function potrosiIzazov(izazov: string, svrha: Svrha): Promise<{ korisnikId
 
 /** Razlog zašto se ključ ne smije dodati, ili null. */
 export async function razlogOdbijanja(s: Sesija | undefined): Promise<string | null> {
-	if (!s?.korisnikId) return 'Pristupni ključ se dodaje nakon prijave Certilijom.';
-	if (s.nacin !== 'certilia' || !s.od || Date.now() - s.od > SVJEZA_PRIJAVA_MS) {
-		return 'Za dodavanje ključa prijava Certilijom mora biti svježa (unutar 10 minuta).';
+	if (!s?.korisnikId) return 'Pristupni ključ se dodaje nakon prijave s @skole.hr ili Certilijom.';
+	// Ključ je samo brži ulaz: dodaje se tek uz svježi dokaz identiteta (AAI@EduHr ili Certilia).
+	if ((s.nacin !== 'certilia' && s.nacin !== 'aaieduhr') || !s.od || Date.now() - s.od > SVJEZA_PRIJAVA_MS) {
+		return 'Za dodavanje ključa prijava s @skole.hr ili Certilijom mora biti svježa (unutar 10 minuta).';
 	}
 	const red = await env.DB.prepare('SELECT COUNT(*) AS n FROM passkeyi WHERE korisnik_id = ?').bind(s.korisnikId).first<{ n: number }>();
 	if ((red?.n ?? 0) >= NAJVISE_KLJUCEVA) return `Najviše ${NAJVISE_KLJUCEVA} ključeva po osobi; obriši stari pa dodaj novi.`;
