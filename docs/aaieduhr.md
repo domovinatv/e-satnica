@@ -173,6 +173,12 @@ status partnera.
   njezin račun član virtualne organizacije `OdgovorneOsobePartneraAAI`. Poziv u nju stiže mailom odgovornoj
   osobi i veže se uz račun **kojim se prihvati**, pa ga treba prihvatiti istim računom kojim se ulazi u Registar.
   4. 11. to je pošlo krivo (detalji u privatnom `e-satnica-sastanci`); Srcu poslan zahtjev da se raspetlja.
+- 4. 11. 13:06 **#3988 registriran** (Srce). Testni resurs radi samo na **Fed-Labu**: issuer `https://fed-lab.aaiedu.hr`
+  (na `login.aaiedu.hr` isti client ID dobije „Client authentication failed”). `AAI_ISSUER` u `wrangler.jsonc`
+  zato je sada Fed-Lab. Na Fed-Labu se ne prijavljuje pravim @skole.hr računom, nego testnim Fed-Lab korisnikom.
+- 4. 11. Srce poslalo novu pozivnicu za VO `OdgovorneOsobePartneraAAI`, Matija je prihvatio računom kojim ulazi u
+  Registar, nakon ponovne prijave pojavio se „Odobravam postupak”. **#3989 odobren od odgovorne osobe**, čeka
+  administratora Srca.
 - **Ništa dalje do odobrenja**: čeka se Srce (račun u Registru resursa) i CARNET (atributi skole.hr).
 - Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
   upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
