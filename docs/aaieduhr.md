@@ -57,6 +57,42 @@ Atributi zanimljivi e-satnici (scope = ime atributa):
 | `hrEduPersonProfessionalStatus`, `hrEduPersonTitle` | zvanje |
 | `hrEduPersonOIB`, `givenName`, `sn` | identitet; tražiti samo ako stvarno treba |
 
+## Implementacija (4. 11. 2026., prije odobrenja u Registru)
+
+**@skole.hr je glavni ulaz.** Svi nastavnici, ravnatelji i ostali djelatnici imaju
+`ime.prezime@skole.hr`; Certilia je neobavezna (nemaju je svi). Neke funkcije
+kasnije mogu tražiti oba potvrđena identiteta.
+
+- Rute `/auth/aaieduhr/start`, `/callback`, `/status` (stanje konfiguracije bez tajni).
+  Redirect URI za Registar: `https://e-satnica.domovina.ai/auth/aaieduhr/callback`.
+- Zajednički OIDC klijent `src/lib/oidc/klijent.ts` (i Certilia ga koristi), stanje
+  toka u `oidc_tokovi`, parser atributa `src/lib/aaieduhr/claimovi.ts`.
+- Gumb „Prijava s @skole.hr” vidi se tek kad postoje secreti `AAI_CLIENT_ID` i
+  `AAI_CLIENT_SECRET` (`wrangler secret put`). Issuer je var `AAI_ISSUER`.
+- **Računi**: prvi dolazak s @skole.hr otvara račun (ime i prezime iz `givenName`/`sn`,
+  bez OIB-a). Ako je korisnik već prijavljen, novi identitet se spaja s tim računom.
+  Certilia prijava uz @skole.hr sesiju upisuje OIB otisak na isti račun. Identifikator
+  (`hrEduPersonPersistentID`, rezerva `sub`) sprema se samo kao HMAC u `identiteti`.
+- **Oblik atributa nije poznat** (discovery nema `claims_supported`): parser prima
+  string ili niz i čita id_token pa userinfo. Svaka prijava u `prijave.claimovi`
+  zapisuje samo imena ključeva po izvoru (`id:…;ui:…`). Prva prava prijava s
+  `/auth/aaieduhr/start?debug=1` pokaže oblik bez otvaranja računa.
+- Testovi: `npm test` diže lažni IdP (`src/lib/oidc/lazni-idp.ts`: RS256 JWKS, PKCE
+  S256, jednokratni kodovi, userinfo) i prolazi cijeli tok te napade (krivi verifier,
+  nonce, ključ, `aud`, secret). Ručno je provjeren i pravi Worker (`astro dev` +
+  lažni IdP na fiksnom portu): novi račun, odbijen ponovljeni callback, spajanje.
+
+### Namjene atributa (tekst za Registar resursa)
+
+Za sada se traže samo ovi scopeovi. Škola i uloga čekaju CARNET-ov odgovor.
+
+| Atribut | Javna namjena |
+|---|---|
+| `openid` | Prijava korisnika u e-satnicu (OpenID Connect). |
+| `hrEduPersonPersistentID` | Prepoznavanje istog korisnika pri idućoj prijavi. Sprema se samo nepovratni otisak (HMAC), ne sama vrijednost. |
+| `givenName`, `sn` | Prikaz imena i prezimena autora uz prijedloge i komentare u e-satnici, kako bi rad tima bio javan i provjerljiv. |
+| `hrEduPersonPrimaryAffiliation` | Provjera je li korisnik djelatnik obrazovne ustanove. Čita se pri prijavi i ne sprema se. |
+
 ## Tko smije biti davatelj usluge
 
 [Pravilnik o ustroju AAI@EduHr](https://wiki.srce.hr/download/attachments/65405172/AAI@EduHr-pravilnik-ver1.3.1.pdf), v1.3.1 (aktualan, potvrdilo Srce 3. 11. 2026.; lokalna kopija [aaieduhr/AAI-EduHr-pravilnik-ver1.3.1.pdf](aaieduhr/AAI-EduHr-pravilnik-ver1.3.1.pdf), tekst u `.txt`):
@@ -107,7 +143,9 @@ status partnera.
 - 4. 11. 08:32 korisnički račun u Registru resursa (`registar.aaiedu.hr/registracija`, prijava istim
   Google računom) izrađen; obrazac traži „Svrhu registracije” (zašto i u ime koje ustanove). Srce mailom:
   „Vaš korisnički račun čeka odobrenje administratora.”
-- Sljedeće: nakon odobrenja registrirati testni OIDC resurs (redirect URI, scopeovi s namjenom).
+- 4. 11. prijava s @skole.hr implementirana i testirana uz lažni IdP (vidi „Implementacija”).
+- Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
+  upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
@@ -126,6 +164,8 @@ status partnera.
   navedenom svrhom i rokom. Školu i ulogu dakle čitamo pri svakoj prijavi, ne
   spremamo ih kao trajni podatak iz AAI-ja. Ovo treba pitati Srce prije
   implementacije: smijemo li spremiti vezu korisnik–škola.
+  Implementacija sprema samo **ime i prezime** (prikaz autora; za račun bez
+  Certilije nema drugog izvora) i HMAC identifikatora. I to treba potvrditi sa Srcem.
 - čl. 32: imenovati odgovornu osobu ITalka za AAI@EduHr (obrazac Koordinatora).
 - čl. 41: partner sam snosi svoje troškove; naknada za partnerstvo se ne spominje.
 
@@ -135,6 +175,10 @@ status partnera.
 
 - Što CARNET isporučuje iz `skole.hr` (škola, uloga, više škola).
 - Smijemo li trajno vezati korisnika uz školu (čl. 34).
+- Smijemo li za račune bez Certilije spremiti ime i prezime iz `givenName`/`sn` (čl. 34).
+- Dupli računi: tko se prvo prijavi Certilijom, a zatim (bez otvorene sesije)
+  s @skole.hr, dobije dva računa. Spajanje dva postojeća računa nije napravljeno.
+- Prije prve prave prijave: migracija 0005 na produkcijskom D1 i deploy.
 
 ## Izvori
 
