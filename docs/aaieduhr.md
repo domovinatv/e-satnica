@@ -59,9 +59,10 @@ Atributi zanimljivi e-satnici (scope = ime atributa):
 
 ## Implementacija (4. 11. 2026., prije odobrenja u Registru)
 
-**@skole.hr je glavni ulaz.** Svi nastavnici, ravnatelji i ostali djelatnici imaju
-`ime.prezime@skole.hr`; Certilia je neobavezna (nemaju je svi). Neke funkcije
-kasnije mogu tražiti oba potvrđena identiteta.
+Svi nastavnici, ravnatelji i ostali djelatnici imaju `ime.prezime@skole.hr`, a
+Certiliju nemaju svi. Oba davatelja su neovisna i jednako vrijedna za prijavu. Uloga
+u obrazovnom sustavu postoji samo kod CARNET-a, a za sve funkcije trebat će oba
+(vidi [prijava-i-ovlasti.md](prijava-i-ovlasti.md)).
 
 - Rute `/auth/aaieduhr/start`, `/callback`, `/status` (stanje konfiguracije bez tajni).
   Redirect URI za Registar: `https://e-satnica.domovina.ai/auth/aaieduhr/callback`.
@@ -144,6 +145,9 @@ status partnera.
   Google računom) izrađen; obrazac traži „Svrhu registracije” (zašto i u ime koje ustanove). Srce mailom:
   „Vaš korisnički račun čeka odobrenje administratora.”
 - 4. 11. prijava s @skole.hr implementirana i testirana uz lažni IdP (vidi „Implementacija”).
+- 4. 11. 09:19 deployano: backup produkcijskog D1 (izvan repoa), migracija 0005 prvo
+  probana na kopiji backupa, pa puštena na produkciju (FK provjera čista), zatim deploy.
+  Gumb je skriven dok nema secreta.
 - Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
   upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
 
@@ -178,7 +182,6 @@ status partnera.
 - Smijemo li za račune bez Certilije spremiti ime i prezime iz `givenName`/`sn` (čl. 34).
 - Dupli računi: tko se prvo prijavi Certilijom, a zatim (bez otvorene sesije)
   s @skole.hr, dobije dva računa. Spajanje dva postojeća računa nije napravljeno.
-- Prije prve prave prijave: migracija 0005 na produkcijskom D1 i deploy.
 
 ## Izvori
 
@@ -190,4 +193,5 @@ status partnera.
 
 ## Vezani dokumenti
 
+- [prijava-i-ovlasti.md](prijava-i-ovlasti.md): dva davatelja, autentifikacija i autorizacija
 - [certilia.md](certilia.md): postojeća OIDC integracija
