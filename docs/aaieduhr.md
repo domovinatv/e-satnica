@@ -169,6 +169,10 @@ status partnera.
 - 4. 11. 12:33 oba OIDC modula zatražena, client ID i secret obaju u `../.tajne/` (produkcijski secret upisan
   iz clipboarda bez ispisa). Test #3988 čeka administratora AAI@EduHr; produkcija #3989 prvo čeka
   **potvrdu odgovorne osobe ustanove-partnera** (ITalk), pa tek onda administratora.
+- Odgovorna osoba partnera odobrava postupke u Registru („Odobravam postupak” na stranici resursa) ako je
+  njezin račun član virtualne organizacije `OdgovorneOsobePartneraAAI`. Poziv u nju stiže mailom odgovornoj
+  osobi i veže se uz račun **kojim se prihvati**, pa ga treba prihvatiti istim računom kojim se ulazi u Registar.
+  4. 11. to je pošlo krivo (detalji u privatnom `e-satnica-sastanci`); Srcu poslan zahtjev da se raspetlja.
 - **Ništa dalje do odobrenja**: čeka se Srce (račun u Registru resursa) i CARNET (atributi skole.hr).
 - Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
   upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
