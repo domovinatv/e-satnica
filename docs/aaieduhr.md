@@ -104,8 +104,10 @@ status partnera.
 - 3. 11. 17:34 CARNET Helpdesk (zahtjev 1158089): upit proslijeđen nadležnoj službi, odgovor još nije stigao.
 - **4. 11. 2026. 06:57 zahtjev prihvaćen**: ITalk d.o.o. je ustanova partner AAI@EduHr (status u
   `administracija.aaiedu.hr`, potvrdila Srce). Mailom obavijest nije stigla; vidi se samo u administraciji.
-- Sljedeće: korisnički račun u Registru resursa (`registar.aaiedu.hr/registracija`, prijava istim Google
-  računom; obrazac traži „Svrhu registracije”: zašto i u ime koje ustanove), zatim testni OIDC resurs.
+- 4. 11. 08:32 korisnički račun u Registru resursa (`registar.aaiedu.hr/registracija`, prijava istim
+  Google računom) izrađen; obrazac traži „Svrhu registracije” (zašto i u ime koje ustanove). Srce mailom:
+  „Vaš korisnički račun čeka odobrenje administratora.”
+- Sljedeće: nakon odobrenja registrirati testni OIDC resurs (redirect URI, scopeovi s namjenom).
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
@@ -129,7 +131,7 @@ status partnera.
 
 ## Otvoreno
 
-- Račun u Registru resursa (čeka odobrenje administratora nakon prijave).
+- Račun u Registru resursa izrađen 4. 11., čeka odobrenje administratora.
 
 - Što CARNET isporučuje iz `skole.hr` (škola, uloga, više škola).
 - Smijemo li trajno vezati korisnika uz školu (čl. 34).
