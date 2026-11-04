@@ -1,6 +1,6 @@
 # AAI@EduHr kao drugi način prijave
 
-Istraženo 30. 10. 2026. Upit Srcu poslan 30. 10., odgovor 3. 11. (vidi „Odgovor Srca”). Zahtjev za status partnera podnesen 3. 11. (vidi „Stanje”).
+Istraženo 30. 10. 2026. Upit Srcu poslan 30. 10., odgovor 3. 11. (vidi „Odgovor Srca”). Zahtjev za status partnera podnesen 3. 11., **prihvaćen 4. 11.** (vidi „Stanje”).
 
 Certilia dokazuje da je korisnik stvarni građanin. AAI@EduHr (račun
 `ime.prezime@skole.hr`, kojim se učitelji prijavljuju u e-Maticu i e-Dnevnik)
@@ -101,7 +101,11 @@ status partnera.
   (obrazac navodi poštu: Srce, Josipa Marohnića 5, Zagreb).
 - Upit CARNET-u (`helpdesk@carnet.hr`) o atributima `skole.hr` poslan 3. 11.
 - 3. 11. 13:05 Srce: „Dokumenti ovjereni e-potpisom mogu biti dostavljeni e-mailom. Uzet ćemo u proceduru dostavljeni zahtjev.” Poštanska dostava ne treba.
-- Odluka Srca po čl. 26 u 8 dana od zaprimanja (do ~11. 11. 2026.).
+- 3. 11. 17:34 CARNET Helpdesk (zahtjev 1158089): upit proslijeđen nadležnoj službi, odgovor još nije stigao.
+- **4. 11. 2026. 06:57 zahtjev prihvaćen**: ITalk d.o.o. je ustanova partner AAI@EduHr (status u
+  `administracija.aaiedu.hr`, potvrdila Srce). Mailom obavijest nije stigla; vidi se samo u administraciji.
+- Sljedeće: korisnički račun u Registru resursa (`registar.aaiedu.hr/registracija`, prijava istim Google
+  računom; obrazac traži „Svrhu registracije”: zašto i u ime koje ustanove), zatim testni OIDC resurs.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
@@ -124,6 +128,8 @@ status partnera.
 - čl. 41: partner sam snosi svoje troškove; naknada za partnerstvo se ne spominje.
 
 ## Otvoreno
+
+- Račun u Registru resursa (čeka odobrenje administratora nakon prijave).
 
 - Što CARNET isporučuje iz `skole.hr` (škola, uloga, više škola).
 - Smijemo li trajno vezati korisnika uz školu (čl. 34).
