@@ -53,5 +53,6 @@ Bodovanje (`src/lib/bodovanje/`) je čista funkcija bez I/O, s testovima:
 `/specifikacija/03-kriteriji-bodovanja` prikazuje se iz istog koda.
 Dijagrami u specifikaciji su ```` ```mermaid ```` blokovi; crta ih preglednik.
 
-Deploy: `npm run build && npx wrangler deploy`. Migracije na produkciji:
-`npx wrangler d1 migrations apply e-satnica --remote`.
+Deploy: `npm run db:backup`, `npm run db:migrate` (ako ima novih migracija), pa
+`npm run deploy`. Cloudflare račun, ID-jevi, secreti i postupak:
+[docs/infrastruktura.md](docs/infrastruktura.md).

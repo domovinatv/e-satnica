@@ -12,7 +12,11 @@
     "preview": "astro preview",
     "astro": "astro",
     "generate-types": "wrangler types",
-    "test": "node --test 'src/**/*.test.ts'"
+    "test": "node --test 'src/**/*.test.ts'",
+    "deploy": "astro build && CLOUDFLARE_ACCOUNT_ID=7dc7167b7e2e00923bfa7cd697df14e4 wrangler deploy",
+    "db:backup": "mkdir -p ../backups && CLOUDFLARE_ACCOUNT_ID=7dc7167b7e2e00923bfa7cd697df14e4 wrangler d1 export e-satnica --remote --output ../backups/d1-e-satnica-$(date +%Y%m%d-%H%M).sql",
+    "db:status": "CLOUDFLARE_ACCOUNT_ID=7dc7167b7e2e00923bfa7cd697df14e4 wrangler d1 migrations list e-satnica --remote",
+    "db:migrate": "CLOUDFLARE_ACCOUNT_ID=7dc7167b7e2e00923bfa7cd697df14e4 wrangler d1 migrations apply e-satnica --remote"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.2",
