@@ -153,6 +153,22 @@ status partnera.
   Gumb je skriven dok nema secreta.
 - 4. 11. 09:32 E2E na produkciji (Brave, Matija): prijava Certilijom kroz novi kod prošla
   (`sesija`, 379 ms, isti postojeći račun). Postupak deploya: [infrastruktura.md](infrastruktura.md).
+- 4. 11. 09:56 račun u Registru resursa aktiviran (mail Srca). Javna stranica `/privatnost` napisana i deployana
+  (Registar traži URL pravila privatnosti, certifikacija ga traži za produkciju).
+- 4. 11. resurs **#3988 „e-satnica (test)”** (vrsta Test, partner ITalk) zatražen; OIDC modul: Confidential,
+  redirect `https://e-satnica.domovina.ai/auth/aaieduhr/callback`, scopeovi i namjene iz tablice gore, bez
+  back-channel logouta. Client ID i secret generira Registar; spremljeni izvan repoa u `../.tajne/` (chmod 600).
+  Paralelno zatražen i produkcijski resurs „e-satnica” s istim podacima. Oboje čeka administratora AAI@EduHr.
+- 4. 11. test client ID i secret (#3988) upisani kao Worker secreti. Gumb se svima prikazuje tek uz var
+  `AAI_JAVNO=1`; do tada samo na `/prijava?skole=1`. Dok administrator ne odobri modul, `login.aaiedu.hr`
+  vraća 400 „Client authentication failed” (provjereno curlom). Produkcijski resurs je #3989.
+- Registar ne dopušta isti redirect URI na dva resursa („već zauzeta”). Zato test #3988 ima
+  `https://e-satnica.domovina.ai/auth/aaieduhr/test/callback` (ruta `src/pages/auth/aaieduhr/test/callback.ts`),
+  a produkcija #3989 kanonski `/auth/aaieduhr/callback`. Koji se koristi, bira var `AAI_REDIRECT_PATH` u
+  `wrangler.jsonc` (sada test). Prelazak na produkciju: maknuti var, upisati secrete iz `../.tajne/aai-prod-3989.env`.
+- 4. 11. 12:33 oba OIDC modula zatražena, client ID i secret obaju u `../.tajne/` (produkcijski secret upisan
+  iz clipboarda bez ispisa). Test #3988 čeka administratora AAI@EduHr; produkcija #3989 prvo čeka
+  **potvrdu odgovorne osobe ustanove-partnera** (ITalk), pa tek onda administratora.
 - **Ništa dalje do odobrenja**: čeka se Srce (račun u Registru resursa) i CARNET (atributi skole.hr).
 - Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
   upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.

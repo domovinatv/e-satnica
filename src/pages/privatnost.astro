@@ -1,0 +1,105 @@
+---
+import Osnova from '../layouts/Osnova.astro';
+
+export const prerender = false;
+
+// Javna stranica: na nju vode Registar resursa AAI@EduHr i Certilia. Svaka tvrdnja
+// ovdje mora odgovarati kodu (migrations/, src/lib/sesija.ts, src/pages/auth/).
+const AZURIRANO = '4. 11. 2026.';
+---
+
+<Osnova naslov="Pravila privatnosti">
+	<h1>Pravila privatnosti</h1>
+	<p class="sitno">Zadnja izmjena: {AZURIRANO}</p>
+
+	<h2>Tko obrađuje podatke</h2>
+	<p>
+		Voditelj obrade je <strong>ITalk d.o.o. za informacijske tehnologije</strong>, OIB 54872935051, IX. Južna obala 20,
+		10000 Zagreb. Za sva pitanja o osobnim podacima piši na
+		<a href="mailto:privacy@italk.hr">privacy@italk.hr</a>.
+	</p>
+	<p>
+		e-satnica služi za predlaganje i komentiranje bodovanja i raspodjele nastavnih sati. Prijava postoji da bi se
+		znalo da prijedloge i komentare pišu stvarne osobe, svaka s jednim računom.
+	</p>
+
+	<h2>Kako se prijavljuješ</h2>
+	<ul>
+		<li>
+			<strong>Certilia</strong> (AKD): dobivamo ime, prezime i OIB. OIB ne spremamo, nego samo njegov nepovratni
+			otisak (HMAC), da ista osoba uvijek dobije isti račun.
+		</li>
+		<li>
+			<strong>AAI@EduHr</strong> (račun <code>@skole.hr</code>, Srce i CARNET): dobivamo ime (<code>givenName</code>),
+			prezime (<code>sn</code>), trajni identifikator (<code>hrEduPersonPersistentID</code>) i vrstu povezanosti s
+			ustanovom (<code>hrEduPersonPrimaryAffiliation</code>, npr. djelatnik). Identifikator spremamo samo kao nepovratni
+			otisak, a vrstu povezanosti samo u kolačiću sesije, ne u bazi.
+		</li>
+		<li>
+			<strong>Pristupni ključ</strong> (passkey): spremamo javni ključ i naziv uređaja. Privatni ključ nikad ne napušta
+			tvoj uređaj.
+		</li>
+	</ul>
+	<p>Lozinke ni za jedan od tih sustava ne vidimo: upisuješ ih na Certilijinoj ili Srčevoj stranici.</p>
+
+	<h2>Što spremamo i zašto</h2>
+	<table>
+		<thead>
+			<tr><th>Podatak</th><th>Svrha</th></tr>
+		</thead>
+		<tbody>
+			<tr><td>ime i prezime</td><td>prikaz autora uz prijedloge i komentare, kako bi rad bio javan i provjerljiv</td></tr>
+			<tr><td>otisak OIB-a ili @skole.hr identifikatora</td><td>jedna osoba, jedan račun; prepoznavanje pri idućoj prijavi</td></tr>
+			<tr><td>tvoji prijedlozi i komentari</td><td>to je sadržaj usluge; vidljivi su prijavljenim korisnicima uz tvoje ime</td></tr>
+			<tr><td>vrijeme prve i zadnje prijave</td><td>rad računa i sigurnost</td></tr>
+			<tr>
+				<td>zapis prijave: vrijeme, ishod, trajanje, eventualna greška i <em>imena</em> primljenih atributa (ne njihove vrijednosti)</td>
+				<td>sigurnost i otklanjanje grešaka u prijavi</td>
+			</tr>
+			<tr><td>javni ključ pristupnog ključa</td><td>prijava bez Certilije</td></tr>
+		</tbody>
+	</table>
+	<p>
+		Dodatni podatak (npr. datum rođenja, ako ga bodovanje bude trebalo) tražimo tek kad ga neka funkcija treba, uz
+		objašnjenje i tvoj izričiti pristanak na Certilijinom ekranu. Bez toga ne stiže.
+	</p>
+	<p>
+		Pravna osnova je legitimni interes (GDPR čl. 6(1)(f)) da usluga zna tko piše, odnosno privola za svaki dodatni
+		podatak (čl. 6(1)(a)).
+	</p>
+
+	<h2>Kolačići</h2>
+	<p>Koristimo samo nužne kolačiće, bez analitike i oglasa:</p>
+	<ul>
+		<li><code>esatnica_sesija</code>: potpisana sesija, do 30 dana ili do odjave</li>
+		<li><code>esatnica_certilia_pokusaj</code>: pamti da je prijava Certilijom započeta, do 24 sata</li>
+		<li><code>esatnica_bez_kljuca</code>: pamti da si odbio ponudu pristupnog ključa, do 30 dana</li>
+	</ul>
+
+	<h2>Kome podaci idu</h2>
+	<p>
+		Nikome ih ne prodajemo ni dajemo. Atribute iz AAI@EduHr koristimo samo u svrhu navedenu ovdje i ne dajemo ih
+		trećima. Aplikacija i baza rade na infrastrukturi tvrtke <strong>Cloudflare</strong>, koja je izvršitelj obrade.
+		Izvorni kod je javan:
+		<a href="https://github.com/domovinatv/e-satnica">github.com/domovinatv/e-satnica</a>.
+	</p>
+
+	<h2>Koliko dugo</h2>
+	<p>
+		Podaci računa i tvoji prijedlozi čuvaju se dok račun postoji. Na zahtjev brišemo račun i sve podatke uz njega;
+		prijedloge i komentare tada ili brišemo ili ostavljamo bez imena autora, kako odabereš.
+	</p>
+
+	<h2>Tvoja prava</h2>
+	<p>
+		Imaš pravo na pristup, ispravak, brisanje, ograničenje obrade, prenosivost i prigovor. Piši na
+		<a href="mailto:privacy@italk.hr">privacy@italk.hr</a>; odgovaramo u roku od 30 dana. Pritužbu možeš podnijeti
+		Agenciji za zaštitu osobnih podataka (<a href="https://azop.hr">azop.hr</a>).
+	</p>
+</Osnova>
+
+<style>
+	.sitno { color: var(--siva); font-size: 0.9em; }
+	table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; }
+	th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--rub); }
+</style>

@@ -1,4 +1,5 @@
 ---
+import { env } from 'cloudflare:workers';
 import Osnova from '../layouts/Osnova.astro';
 import { aaiJePodesena } from '../lib/aaieduhr/oidc';
 import { certiliaJePodesena } from '../lib/certilia/oidc';
@@ -23,7 +24,8 @@ const AAI_GRESKE: Record<string, string> = {
 };
 
 const p = Astro.url.searchParams;
-const aai = aaiJePodesena();
+// Dok AAI_JAVNO nije '1' (test resurs u Registru), gumb se vidi samo na /prijava?skole=1.
+const aai = aaiJePodesena() && (env.AAI_JAVNO === '1' || p.has('skole'));
 const aaiGreska = p.get('aai_greska');
 const aaiDebug = p.get('aai_claimovi');
 const natrag = sigurnoNatrag(p.get('natrag'));
@@ -58,7 +60,7 @@ const VODIC = 'https://vodic.domovina.ai/?app=e-satnica';
 	{
 		certilia && (
 			<p class="meta">
-				<a href={VODIC}>Nemaš Certiliju ili ne znaš lozinku?</a> · <a href="/upute">Kako se prijaviti</a>
+				<a href={VODIC}>Nemaš Certiliju ili ne znaš lozinku?</a> · <a href="/upute">Kako se prijaviti</a> · <a href="/privatnost">Privatnost</a>
 			</p>
 		)
 	}

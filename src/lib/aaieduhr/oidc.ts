@@ -10,8 +10,11 @@ export function aaiJePodesena(): boolean {
 	return Boolean(env.AAI_CLIENT_ID && env.AAI_CLIENT_SECRET);
 }
 
+// Registar resursa ne dopušta isti redirect URI na dva resursa: produkcijski (#3989) ima
+// /auth/aaieduhr/callback, testni (#3988) /auth/aaieduhr/test/callback. Var AAI_REDIRECT_PATH
+// bira koji, uz secrete istog resursa.
 export function aaiRedirectUri(): string {
-	return `${env.APP_ORIGIN}/auth/aaieduhr/callback`;
+	return `${env.APP_ORIGIN}${env.AAI_REDIRECT_PATH || '/auth/aaieduhr/callback'}`;
 }
 
 export function aaiPostavke(): OidcPostavke {

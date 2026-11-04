@@ -1,7 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 import { KOLACIC, procitajSesiju } from './lib/sesija';
 
-const JAVNO = ['/prijava', '/odjava', '/upute', '/favicon.svg', '/favicon.ico'];
+const JAVNO = ['/prijava', '/odjava', '/upute', '/privatnost', '/favicon.svg', '/favicon.ico'];
 
 export const onRequest = defineMiddleware(async (context, next) => {
 	const { pathname } = context.url;
