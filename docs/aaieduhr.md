@@ -180,9 +180,16 @@ status partnera.
 - 4. 11. Srce poslalo novu pozivnicu za VO `OdgovorneOsobePartneraAAI`, Matija je prihvatio računom kojim ulazi u
   Registar, nakon ponovne prijave pojavio se „Odobravam postupak”. **#3989 odobren od odgovorne osobe**, čeka
   administratora Srca.
-- **Ništa dalje do odobrenja**: čeka se Srce (račun u Registru resursa) i CARNET (atributi skole.hr).
-- Sljedeće: nakon odobrenja registrirati OIDC resurs (redirect URI i namjene iz tablice gore),
-  upisati secrete, prijaviti se s `?debug=1` i pogledati oblik atributa.
+- 5. 11. Srce odobrilo testni Fed-Lab identitet (`uid@aai-test.hr`, povezanost djelatnik; zahtjev na
+  `fed-lab.aaiedu.hr/zahtjev.php?show=zahtjev_identitet`, zaporku bira podnositelj, odobrenje ručno, ~1 dan).
+  **Prva prava prijava na Fed-Labu prošla**; claimovi u [prijava-i-ovlasti.md](prijava-i-ovlasti.md). Tim dobio
+  zajedničkog testnog korisnika (podaci samo u privatnom `e-satnica-sastanci/docs/aaieduhr/testiranje-fed-lab.md`).
+- 5. 11. spajanje računa (Certilia + @skole.hr) i automatsko spajanje preko `hrEduPersonOIB` deployani; OIB se
+  traži tek uz var `AAI_OIB=1`, nakon što je scope s namjenom (tablica gore) upisan u Registar na #3988 i #3989.
+  Nepoznat scope bi srušio prijavu, zato redoslijed: Registar → `AAI_OIB=1` → deploy → test.
+- **Otvoreno**: #3989 čeka administratora Srca; `hrEduPersonOIB` u Registru (Matija); škola i uloga čekaju CARNET.
+- Prelazak na produkciju (#3989 odobren): `AAI_ISSUER` natrag na `https://login.aaiedu.hr`, maknuti
+  `AAI_REDIRECT_PATH`, secrete iz `../.tajne/aai-prod-3989.env`, `AAI_JAVNO=1`.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
