@@ -1,0 +1,83 @@
+---
+import Osnova from '../../layouts/Osnova.astro';
+import { KOLACIC, kolacicOpcije, napraviSesiju, sigurnoNatrag } from '../../lib/sesija';
+import { pregledRacuna, procitajPrijedlog, spojiRacune, zaboraviPrijedlog, type PregledRacuna } from '../../lib/spajanje';
+
+export const prerender = false;
+
+const sesija = Astro.locals.sesija;
+const prijedlog = await procitajPrijedlog(Astro.cookies, sesija?.korisnikId);
+
+if (Astro.request.method === 'POST') {
+	const forma = await Astro.request.formData();
+	if (!prijedlog || !sesija) return Astro.redirect('/racun?spajanje=isteklo', 303);
+	zaboraviPrijedlog(Astro.cookies);
+	if (forma.get('odluka') !== 'spoji') return Astro.redirect('/racun?spajanje=odustao', 303);
+	const r = await spojiRacune(prijedlog.a, prijedlog.b);
+	if (!r.ok) return Astro.redirect(`/racun?spajanje=${encodeURIComponent(r.razlog)}`, 303);
+	console.log('racuni_spojeni', { cilj: r.cilj.id, davatelj: prijedlog.davatelj });
+	Astro.cookies.set(
+		KOLACIC,
+		await napraviSesiju({ ...sesija, ime: `${r.cilj.ime} ${r.cilj.prezime}`, korisnikId: r.cilj.id }),
+		kolacicOpcije,
+	);
+	return Astro.redirect(`/racun?spajanje=ok&natrag=${encodeURIComponent(sigurnoNatrag(prijedlog.natrag))}`, 303);
+}
+
+if (!prijedlog) return Astro.redirect('/racun?spajanje=isteklo');
+const [trenutni, drugi] = await Promise.all([pregledRacuna(prijedlog.a), pregledRacuna(prijedlog.b)]);
+if (!trenutni || !drugi) return Astro.redirect('/racun?spajanje=nema_racuna');
+const razliciti = Boolean(trenutni.oib_hash && drugi.oib_hash && trenutni.oib_hash !== drugi.oib_hash);
+const davatelj = prijedlog.davatelj === 'certilia' ? 'Certilijom' : 's @skole.hr';
+
+const datum = (d: string) => new Date(`${d}Z`).toLocaleDateString('hr-HR', { timeZone: 'Europe/Zagreb' });
+const nacini = (r: PregledRacuna) =>
+	[r.certilia && 'Certilia', r.skole > 0 && '@skole.hr', r.kljucevi > 0 && `${r.kljucevi} ${r.kljucevi === 1 ? 'pristupni ključ' : 'pristupna ključa'}`]
+		.filter(Boolean)
+		.join(', ') || '—';
+---
+
+<Osnova naslov="Spajanje računa">
+	<h1>Imaš dva računa</h1>
+	<p>
+		Prijavio/la si se {davatelj}, a ta prijava već pripada drugom računu u e-satnici. Ako su oba tvoja, spoji ih u
+		jedan: sve stavke, pristupni ključevi i načini prijave prelaze na jedan račun, a drugi se briše.
+	</p>
+
+	<table>
+		<thead>
+			<tr><th></th><th>Ovaj račun</th><th>Drugi račun</th></tr>
+		</thead>
+		<tbody>
+			<tr><th>Ime</th><td>{trenutni.ime} {trenutni.prezime}</td><td>{drugi.ime} {drugi.prezime}</td></tr>
+			<tr><th>Prijava</th><td>{nacini(trenutni)}</td><td>{nacini(drugi)}</td></tr>
+			<tr><th>Stavke</th><td>{trenutni.stavke}</td><td>{drugi.stavke}</td></tr>
+			<tr><th>Otvoren</th><td>{datum(trenutni.created_at)}</td><td>{datum(drugi.created_at)}</td></tr>
+		</tbody>
+	</table>
+
+	{
+		razliciti ? (
+			<p class="kartica greska">
+				Oba računa imaju Certiliju s različitim OIB-om, dakle pripadaju dvjema osobama i ne mogu se spojiti. Ako
+				računalo dijeliš s nekim, odjavi se i prijavi svojim računom.
+			</p>
+		) : (
+			<>
+				<p class="meta">
+					Ime se uzima iz Certilije (e-Osobna) ako je jedan od računa ima. Spajanje se ne može poništiti.
+				</p>
+				<form method="post" class="odluke">
+					<button type="submit" name="odluka" value="spoji">Spoji u jedan račun</button>
+					<button type="submit" name="odluka" value="odustani" class="sporedno">Ne spajaj</button>
+				</form>
+			</>
+		)
+	}
+</Osnova>
+
+<style>
+	.odluke { display: flex; gap: 12px; flex-wrap: wrap; }
+	.sporedno { background: none; color: var(--plava); border: 1px solid var(--rub); }
+	th { text-align: left; }
+</style>

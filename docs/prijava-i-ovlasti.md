@@ -22,6 +22,41 @@ Jedan korisnik može imati oba davatelja na istom računu (`korisnici.oib_hash` 
 Certiliju, `identiteti` za @skole.hr). Spajaju se tako da je korisnik prijavljen
 jednim i zatim se prijavi drugim.
 
+## Jedna osoba, jedan račun (spajanje)
+
+Najgori ishod ovakvih sustava su dva računa iste osobe: jedan otvoren Certilijom,
+drugi s @skole.hr, svaki sa svojim stavkama. Automatski ih ne možemo prepoznati:
+nijedan davatelj nam ne šalje e-mail (ne tražimo ga), a ime nije jedinstveno.
+Zato spajanje ide preko dokaza da ista osoba drži oba računa, a to je prijava
+obama u istom pregledniku:
+
+1. **Drugi davatelj još nije nigdje spojen**: prijava njime dok je korisnik već
+   prijavljen samo ga doda trenutnom računu (bez pitanja, kao i dosad).
+2. **Drugi davatelj već ima svoj račun**: sesija ostaje na trenutnom računu, a
+   korisnik dolazi na `/racun/spoji` s usporedbom obaju računa (ime, načini
+   prijave, broj stavki) i bira „Spoji u jedan račun” ili „Ne spajaj”.
+   Prijedlog je u potpisanom kolačiću (15 min) i vrijedi samo za račun kojim je
+   korisnik prijavljen.
+3. **Oba računa imaju Certiliju s različitim OIB-om**: dvije osobe, spajanje
+   nije moguće (npr. zajedničko računalo). Certilia prijava tada samo prebacuje
+   sesiju na račun tog OIB-a, kao i dosad.
+
+Ostaje račun s Certilijom (ime iz e-Osobne), inače stariji. Na njega prelaze
+stavke, pristupni ključevi, @skole.hr identiteti i podaci iz step-upa (kod
+istog podatka ostaje vrijednost cilja), a drugi račun se briše, sve u jednoj D1
+transakciji. Kod je u `src/lib/spajanje/`; test nad pravim SQLiteom s
+migracijama pada ako nova tablica s `korisnik_id` nije pokrivena spajanjem.
+
+Ulazi za korisnika: stranica **Račun** (`/racun`, poveznica u zaglavlju) pokazuje
+koji su davatelji spojeni i nudi „Spoji Certiliju” / „Spoji @skole.hr”; ponuda
+pristupnog ključa nakon prve prijave podsjeća na to isto.
+
+Potpuno automatsko spajanje bilo bi moguće samo preko OIB-a: AAI@EduHr ima
+atribut `hrEduPersonOIB`, pa bi isti OIB iz Certilije i iz @skole.hr spojio
+račune bez ikakve radnje korisnika. Tražiti ga znači proširiti scope u Registru
+resursa uz javnu namjenu, što je odluka o minimizaciji podataka; dok nije donesena,
+vrijedi ručno spajanje iznad.
+
 ## Autorizacija: uloga u obrazovnom sustavu postoji samo kod CARNET-a
 
 Certilia ne zna radi li osoba u školi, u kojoj i kao što. To je zapisano samo u
@@ -39,7 +74,20 @@ Koje funkcije traže što, odredit će se kad vidimo što @skole.hr stvarno ispo
 
 ## Usporedba claimova (nakon prvih prijava)
 
-Kad se prvi korisnici prijave s @skole.hr, ovdje ide usporedba stvarnih odgovora
+Prva prijava s @skole.hr (Fed-Lab, testni identitet `@aai-test.hr`, povezanost
+djelatnik), 5. 11. 2026., `/auth/aaieduhr/start?debug=1`:
+
+| Izvor | Claimovi |
+|---|---|
+| id_token | `at_hash`, `aud`, `exp`, `iat`, `iss`, `jti`, `nbf`, `nonce`, `sid`, `sub` |
+| userinfo | `givenName`, `hrEduPersonPersistentID`, `hrEduPersonPrimaryAffiliation`, `sn`, `sub` |
+
+Identitet se uzima iz `hrEduPersonPersistentID`, ime i prezime stižu, povezanost je
+`djelatnik`. Atributi stižu samo u userinfo, id_token nosi samo protokolarne
+claimove. Ovo je Fed-Lab; pravi skole.hr (produkcijski resurs) treba potvrditi istim
+postupkom.
+
+Kad se prvi korisnici prijave s pravim @skole.hr, ovdje ide usporedba stvarnih odgovora
 obaju davatelja, claim po claim, s objašnjenjem što koji znači i za što ga
 e-satnica koristi. Izvori:
 

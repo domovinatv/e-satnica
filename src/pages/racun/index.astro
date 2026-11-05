@@ -1,0 +1,79 @@
+---
+import { env } from 'cloudflare:workers';
+import Osnova from '../../layouts/Osnova.astro';
+import { aaiJePodesena } from '../../lib/aaieduhr/oidc';
+import { certiliaJePodesena } from '../../lib/certilia/oidc';
+import { sigurnoNatrag } from '../../lib/sesija';
+import { pregledRacuna } from '../../lib/spajanje';
+
+export const prerender = false;
+
+const korisnikId = Astro.locals.korisnikId;
+if (!korisnikId) return Astro.redirect('/prijava?natrag=%2Fracun');
+const racun = await pregledRacuna(korisnikId);
+if (!racun) return Astro.redirect('/prijava?natrag=%2Fracun');
+
+const p = Astro.url.searchParams;
+// Dok AAI_JAVNO nije '1', @skole.hr se nudi samo uz ?skole=1, kao na /prijava.
+const aai = aaiJePodesena() && (env.AAI_JAVNO === '1' || p.has('skole'));
+const certilia = certiliaJePodesena();
+const spajanje = p.get('spajanje');
+const natrag = p.has('natrag') ? sigurnoNatrag(p.get('natrag')) : null;
+
+const PORUKE: Record<string, { tekst: string; greska?: boolean }> = {
+	ok: { tekst: 'Računi su spojeni. Sada imaš jedan račun sa svim načinima prijave.' },
+	odustao: { tekst: 'Računi nisu spojeni. I dalje si prijavljen/a ovim računom.' },
+	isteklo: { tekst: 'Prijedlog spajanja je istekao. Prijavi se drugim načinom ponovno.', greska: true },
+	razliciti_oib: { tekst: 'Računi imaju različite OIB-ove i ne mogu se spojiti.', greska: true },
+};
+const poruka = spajanje ? (PORUKE[spajanje] ?? { tekst: `Spajanje nije uspjelo (${spajanje}).`, greska: true }) : null;
+const ovdje = encodeURIComponent('/racun');
+---
+
+<Osnova naslov="Račun">
+	<h1>Račun i prijava</h1>
+	{poruka && <p class:list={['kartica', { greska: poruka.greska }]}>{poruka.tekst}</p>}
+	{natrag && spajanje === 'ok' && <p><a href={natrag}>Nastavi gdje si stao/la →</a></p>}
+
+	<p>
+		<strong>{racun.ime} {racun.prezime}</strong>
+	</p>
+
+	<h2>Načini prijave</h2>
+	<p>
+		U e-satnicu se ulazi Certilijom ili s @skole.hr. Oba vode na isti račun kad su spojena, a za sve funkcije
+		trebaju oba: Certilia potvrđuje tko si, @skole.hr da radiš u školi.
+	</p>
+
+	<table>
+		<tbody>
+			<tr>
+				<th>Certilia</th>
+				<td>
+					{racun.certilia ? 'spojena' : certilia ? <a href={`/auth/certilia/start?natrag=${ovdje}`}>Spoji Certiliju</a> : 'nije dostupna'}
+				</td>
+			</tr>
+			<tr>
+				<th>@skole.hr</th>
+				<td>
+					{racun.skole > 0 ? 'spojen' : aai ? <a href={`/auth/aaieduhr/start?natrag=${ovdje}`}>Spoji @skole.hr</a> : 'uskoro'}
+				</td>
+			</tr>
+			<tr>
+				<th>Pristupni ključevi</th>
+				<td>
+					{racun.kljucevi > 0 ? `${racun.kljucevi}` : 'nijedan'} · <a href="/kljucevi">uredi</a>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<p class="meta">
+		Ako si se već prijavio/la i drugim načinom pa imaš dva računa, prijavi se njime preko poveznice iznad. e-satnica
+		će prepoznati drugi račun i ponuditi da ih spojiš u jedan.
+	</p>
+</Osnova>
+
+<style>
+	th { text-align: left; padding-right: 24px; }
+</style>

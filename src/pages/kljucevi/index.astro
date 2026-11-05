@@ -74,6 +74,14 @@ const datum = (d: string | null) => (d ? new Date(`${d}Z`).toLocaleDateString('h
 		)
 	}
 	{ponuda && <p class="meta"><a href={`/kljucevi/preskoci?natrag=${encodeURIComponent(natrag)}`}>Ne sada</a></p>}
+	{
+		ponuda && (
+			<p class="meta">
+				Već si se prije prijavio/la drugim načinom (Certilia ili @skole.hr)? Na stranici <a href="/racun">Račun</a>{' '}
+				spoji ga s ovim, da ne vodiš dva računa.
+			</p>
+		)
+	}
 
 	{
 		kljucevi.length > 0 && (

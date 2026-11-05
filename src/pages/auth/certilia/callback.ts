@@ -4,6 +4,7 @@ import { exchangeCode, oibIzTokena, parsirajTrazi, stepUpVrijednosti, str, verif
 import { uzmiTok } from '../../../lib/oidc/tok';
 import { brojKljuceva, PRESKOCI_KOLACIC } from '../../../lib/passkey';
 import { KOLACIC, kolacicOpcije, napraviSesiju, oibHash, POKUSAJ_KOLACIC, procitajSesiju } from '../../../lib/sesija';
+import { predloziSpajanje } from '../../../lib/spajanje';
 
 export const prerender = false;
 
@@ -93,6 +94,19 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 				).bind(korisnik.id, podatak, v),
 			),
 		);
+	}
+
+	// Prijavljen računom bez OIB-a (npr. @skole.hr), a ovaj OIB već ima svoj račun:
+	// ista osoba ima dva računa. Sesija ostaje na trenutnom, korisnik potvrđuje spajanje.
+	// Račun s drugim OIB-om je druga osoba; tada se prijava samo prebacuje.
+	if (korisnik && vec?.korisnikId && vec.korisnikId !== korisnik.id && !tok.trazi) {
+		const trenutni = await env.DB.prepare('SELECT oib_hash FROM korisnici WHERE id = ?').bind(vec.korisnikId).first<{ oib_hash: string | null }>();
+		if (trenutni && !trenutni.oib_hash) {
+			zapisi('predlozeno_spajanje', true, { oibHash: hash, claimovi });
+			cookies.delete(POKUSAJ_KOLACIC, { path: '/' });
+			await predloziSpajanje(cookies, { a: vec.korisnikId, b: korisnik.id, davatelj: 'certilia', natrag: tok.natrag });
+			return redirect('/racun/spoji');
+		}
 	}
 
 	zapisi(tok.trazi ? `sesija+${tok.trazi}` : 'sesija', true, { oibHash: hash, claimovi });

@@ -6,6 +6,7 @@ import { dohvatiUserinfo, provjeriIdToken, zamijeniKod } from '../../../lib/oidc
 import { uzmiTok } from '../../../lib/oidc/tok';
 import { brojKljuceva, PRESKOCI_KOLACIC } from '../../../lib/passkey';
 import { identitetHash, KOLACIC, kolacicOpcije, napraviSesiju, procitajSesiju } from '../../../lib/sesija';
+import { predloziSpajanje } from '../../../lib/spajanje';
 
 export const prerender = false;
 
@@ -103,6 +104,14 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		if (veza) korisnikId = veza.korisnik_id;
 	} else {
 		await env.DB.prepare("UPDATE identiteti SET zadnja_prijava = datetime('now') WHERE davatelj = ? AND id_hash = ?").bind(DAVATELJ, idHash).run();
+		// Prijavljen drugim računom, a ovaj @skole.hr već ima svoj: ista osoba ima dva
+		// računa. Sesija ostaje na trenutnom, korisnik potvrđuje spajanje.
+		const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
+		if (vec?.korisnikId && vec.korisnikId !== korisnikId) {
+			zapisi('predlozeno_spajanje', true, { claimovi: osoba.kljucevi });
+			await predloziSpajanje(cookies, { a: vec.korisnikId, b: korisnikId, davatelj: DAVATELJ, natrag: tok.natrag });
+			return redirect('/racun/spoji');
+		}
 	}
 
 	// Ime iz @skole.hr osvježava se samo na računu bez Certilije; Certilijino ime je iz e-Osobne.

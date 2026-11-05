@@ -27,7 +27,7 @@ const ime = Astro.locals.ime;
 			{
 				ime && (
 					<form method="post" action="/odjava" class="tko">
-						{ime} · {Astro.locals.korisnikId && <><a href="/kljucevi">Ključevi</a> · </>}
+						{ime} · {Astro.locals.korisnikId && <><a href="/racun">Račun</a> · </>}
 						<button type="submit" class="odjava">Odjava</button>
 					</form>
 				)
