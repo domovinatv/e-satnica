@@ -21,10 +21,11 @@
 	"vars": {
 		"APP_ORIGIN": "https://e-satnica.domovina.ai",
 		"CERTILIA_ISSUER_BASE": "https://idp.certilia.com",
-		// Testni resurs #3988 radi samo na Fed-Labu (na login.aaiedu.hr: „Client authentication failed”).
-		// Za produkcijski (#3989): issuer https://login.aaiedu.hr, maknuti AAI_REDIRECT_PATH, upisati njegove secrete.
-		"AAI_ISSUER": "https://fed-lab.aaiedu.hr",
-		"AAI_REDIRECT_PATH": "/auth/aaieduhr/test/callback"
+		// Produkcijski resurs #3989 (registriran 5. 11. 2026.), redirect /auth/aaieduhr/callback.
+		// Testni #3988 radi samo na Fed-Labu: AAI_ISSUER https://fed-lab.aaiedu.hr,
+		// AAI_REDIRECT_PATH /auth/aaieduhr/test/callback i njegovi secreti.
+		"AAI_ISSUER": "https://login.aaiedu.hr",
+		"AAI_JAVNO": "1"
 	},
 	// Secrets (wrangler secret put, nikad ovdje): SESIJA_KLJUC, CERTILIA_CLIENT_ID,
 	// CERTILIA_CLIENT_SECRET, AAI_CLIENT_ID, AAI_CLIENT_SECRET (Registar resursa AAI@EduHr).

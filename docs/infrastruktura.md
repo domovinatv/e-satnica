@@ -24,14 +24,14 @@ Tajne (vrijednosti secreta) nikad ne idu ovamo.
 
 ## Varijable i secreti
 
-Varijable su u `wrangler.jsonc` (`APP_ORIGIN`, `CERTILIA_ISSUER_BASE`, `AAI_ISSUER`).
+Varijable su u `wrangler.jsonc` (`APP_ORIGIN`, `CERTILIA_ISSUER_BASE`, `AAI_ISSUER`, `AAI_JAVNO`; `AAI_REDIRECT_PATH` i `AAI_OIB` po potrebi).
 Secreti se postavljaju s `npx wrangler secret put IME`. Ovdje su samo imena:
 
 | Secret | Stanje 4. 11. 2026. | Odakle |
 |---|---|---|
 | `SESIJA_KLJUC` | postavljen | slučajan ključ; potpisuje kolačić sesije i HMAC OIB-a i identiteta. Promjena odjavljuje sve i lomi prepoznavanje postojećih korisnika. |
 | `CERTILIA_CLIENT_ID`, `CERTILIA_CLIENT_SECRET` | postavljeni | registracija aplikacije kod Certilije ([certilia.md](certilia.md)) |
-| `AAI_CLIENT_ID`, `AAI_CLIENT_SECRET` | **nisu** | Registar resursa AAI@EduHr, čeka odobrenje ([aaieduhr.md](aaieduhr.md)) |
+| `AAI_CLIENT_ID`, `AAI_CLIENT_SECRET` | postavljeni 5. 11. (produkcijski #3989) | Registar resursa AAI@EduHr, lokalno `../.tajne/aai-prod-3989.env`; upis `wrangler secret bulk` ([aaieduhr.md](aaieduhr.md)) |
 
 ## Wrangler ne odabire račun sam
 

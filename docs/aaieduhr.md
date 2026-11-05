@@ -187,9 +187,19 @@ status partnera.
 - 5. 11. spajanje računa (Certilia + @skole.hr) i automatsko spajanje preko `hrEduPersonOIB` deployani; OIB se
   traži tek uz var `AAI_OIB=1`, nakon što je scope s namjenom (tablica gore) upisan u Registar na #3988 i #3989.
   Nepoznat scope bi srušio prijavu, zato redoslijed: Registar → `AAI_OIB=1` → deploy → test.
-- **Otvoreno**: #3989 čeka administratora Srca; `hrEduPersonOIB` u Registru (Matija); škola i uloga čekaju CARNET.
-- Prelazak na produkciju (#3989 odobren): `AAI_ISSUER` natrag na `https://login.aaiedu.hr`, maknuti
-  `AAI_REDIRECT_PATH`, secrete iz `../.tajne/aai-prod-3989.env`, `AAI_JAVNO=1`.
+- 5. 11. 14:21 **Srce registriralo produkcijski resurs #3989** (mail „Registriran resurs #3989”). Isti dan
+  prebačeno na produkciju: `AAI_ISSUER=https://login.aaiedu.hr`, `AAI_REDIRECT_PATH` maknut (kanonski
+  `/auth/aaieduhr/callback`), `AAI_JAVNO=1` (gumb svima na `/prijava`), secreti iz `../.tajne/aai-prod-3989.env`
+  preko `wrangler secret bulk` (bez ispisa), deploy `982b78e9`. Prva prava prijava pravim @skole.hr računom
+  prošla, a spajanje s postojećim Certilia računom na produkciji radi. Fed-Lab testni korisnik od tada ne
+  radi na produkciji (drugi issuer); za Fed-Lab treba vratiti varijable iz komentara u `wrangler.jsonc`.
+- 5. 11. 14:45 zatražena izmjena OIDC modula #3989: dodan `hrEduPersonOIB` s namjenom iz tablice gore.
+  Odgovorna osoba je i podnositelj, pa je odobrenje partnera automatsko; čeka administratora Srca. Isti
+  zahtjev pripremljen za #3988 (Fed-Lab).
+- Zamka: stranica OIDC konfiguracije u Registru prikazuje client secret u čistom tekstu. Čitati je
+  alatom za snimku stranice znači da secret završi u kontekstu; za provjeru je dovoljan Client ID.
+- **Otvoreno**: `hrEduPersonOIB` čeka admina Srca na #3989 (i predaju/odobrenje na #3988); nakon odobrenja
+  `"AAI_OIB": "1"` u `wrangler.jsonc`, deploy, test spajanja preko OIB-a. Škola i uloga čekaju CARNET.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
