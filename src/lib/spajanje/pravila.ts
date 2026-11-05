@@ -4,6 +4,8 @@
 export interface RacunZaSpajanje {
 	id: number;
 	oib_hash: string | null;
+	/** 1 ako je račun potvrđen Certilijom (ime iz e-Osobne) */
+	certilia: number;
 	ime: string;
 	prezime: string;
 }
@@ -37,8 +39,8 @@ export interface Naredba {
 export function naredbeSpajanja(cilj: RacunZaSpajanje, izvor: RacunZaSpajanje): Naredba[] {
 	const c = cilj.id;
 	const i = izvor.id;
-	// Ime ide s računa koji ima Certiliju; ako ga nema nijedan, ostaje ime cilja.
-	const uzmiImeIzvora = !cilj.oib_hash && Boolean(izvor.oib_hash);
+	// Ime ide s računa koji ima Certiliju (e-Osobna); inače ostaje ime cilja.
+	const uzmiImeIzvora = !cilj.certilia && Boolean(izvor.certilia);
 	return [
 		{ sql: 'UPDATE stavke SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
 		{ sql: 'UPDATE passkeyi SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
@@ -56,10 +58,11 @@ export function naredbeSpajanja(cilj: RacunZaSpajanje, izvor: RacunZaSpajanje): 
 		{
 			sql: `UPDATE korisnici SET
 			        oib_hash = coalesce(oib_hash, ?),
+			        certilia = max(certilia, ?),
 			        ime = iif(?, ?, ime),
 			        prezime = iif(?, ?, prezime)
 			      WHERE id = ?`,
-			params: [izvor.oib_hash, uzmiImeIzvora ? 1 : 0, izvor.ime, uzmiImeIzvora ? 1 : 0, izvor.prezime, c],
+			params: [izvor.oib_hash, izvor.certilia ? 1 : 0, uzmiImeIzvora ? 1 : 0, izvor.ime, uzmiImeIzvora ? 1 : 0, izvor.prezime, c],
 		},
 	];
 }

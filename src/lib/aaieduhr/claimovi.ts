@@ -10,6 +10,15 @@
  */
 export const AAI_SCOPEOVI = ['openid', 'hrEduPersonPersistentID', 'hrEduPersonPrimaryAffiliation', 'givenName', 'sn'] as const;
 
+/**
+ * OIB se traži tek kad je scope `hrEduPersonOIB` s namjenom upisan u Registar resursa
+ * (var AAI_OIB='1'); nepoznat scope bi srušio prijavu. Služi samo spajanju s
+ * Certilia računom iste osobe i sprema se samo kao HMAC, kao i Certilijin.
+ */
+export function aaiScopeovi(oib: boolean): string {
+	return [...AAI_SCOPEOVI, ...(oib ? ['hrEduPersonOIB'] : [])].join(' ');
+}
+
 export interface AaiOsoba {
 	/** Trajni identifikator za povezivanje računa; sprema se samo kao HMAC. */
 	identitet: string | null;
@@ -18,6 +27,8 @@ export interface AaiOsoba {
 	prezime: string | null;
 	/** npr. „djelatnik”, „učenik”; čita se pri prijavi, ne sprema se. */
 	povezanost: string | null;
+	/** 11 znamenki ili null; samo za spajanje, sprema se samo kao HMAC. */
+	oib: string | null;
 	/** Imena ključeva po izvoru, bez vrijednosti: `id:a,b;ui:c,d`. */
 	kljucevi: string;
 }
@@ -62,6 +73,7 @@ export function aaiOsoba(idToken: Record<string, unknown>, userinfo: Record<stri
 		ime: uzmi('givenName', 'given_name'),
 		prezime: uzmi('sn', 'family_name'),
 		povezanost: uzmi('hrEduPersonPrimaryAffiliation'),
+		oib: ((o) => (o && /^\d{11}$/.test(o) ? o : null))(uzmi('hrEduPersonOIB')),
 		kljucevi: kljucevi.join(';'),
 	};
 }

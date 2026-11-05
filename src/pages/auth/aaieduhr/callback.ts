@@ -5,8 +5,8 @@ import { aaiPostavke } from '../../../lib/aaieduhr/oidc';
 import { dohvatiUserinfo, provjeriIdToken, zamijeniKod } from '../../../lib/oidc/klijent';
 import { uzmiTok } from '../../../lib/oidc/tok';
 import { brojKljuceva, PRESKOCI_KOLACIC } from '../../../lib/passkey';
-import { identitetHash, KOLACIC, kolacicOpcije, napraviSesiju, procitajSesiju } from '../../../lib/sesija';
-import { predloziSpajanje } from '../../../lib/spajanje';
+import { identitetHash, KOLACIC, kolacicOpcije, napraviSesiju, oibHash, procitajSesiju } from '../../../lib/sesija';
+import { predloziSpajanje, spojiRacune } from '../../../lib/spajanje';
 
 export const prerender = false;
 
@@ -74,14 +74,24 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	if (!osoba.identitet) return neuspjeh('nema_identiteta', { claimovi: osoba.kljucevi });
 	const idHash = await identitetHash(DAVATELJ, osoba.identitet);
 
+	const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
+	// OIB iz @skole.hr (scope hrEduPersonOIB, kad je uključen): isti OIB kao na
+	// Certilia računu je ista osoba, pa se računi spajaju bez pitanja.
+	const oibH = osoba.oib ? await oibHash(osoba.oib) : null;
+	const poOibu = oibH
+		? (await env.DB.prepare('SELECT id FROM korisnici WHERE oib_hash = ?').bind(oibH).first<{ id: number }>())?.id
+		: undefined;
+
 	let korisnikId = (
 		await env.DB.prepare('SELECT korisnik_id FROM identiteti WHERE davatelj = ? AND id_hash = ?').bind(DAVATELJ, idHash).first<{ korisnik_id: number }>()
 	)?.korisnik_id;
 	let ishod = 'sesija';
 
 	if (!korisnikId) {
-		const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
-		if (vec?.korisnikId) {
+		if (poOibu) {
+			korisnikId = poOibu;
+			ishod = 'spojeno_oib';
+		} else if (vec?.korisnikId) {
 			korisnikId = vec.korisnikId;
 			ishod = 'spojeno';
 		} else {
@@ -104,21 +114,36 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		if (veza) korisnikId = veza.korisnik_id;
 	} else {
 		await env.DB.prepare("UPDATE identiteti SET zadnja_prijava = datetime('now') WHERE davatelj = ? AND id_hash = ?").bind(DAVATELJ, idHash).run();
-		// Prijavljen drugim računom, a ovaj @skole.hr već ima svoj: ista osoba ima dva
-		// računa. Sesija ostaje na trenutnom, korisnik potvrđuje spajanje.
-		const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
-		if (vec?.korisnikId && vec.korisnikId !== korisnikId) {
-			zapisi('predlozeno_spajanje', true, { claimovi: osoba.kljucevi });
-			await predloziSpajanje(cookies, { a: vec.korisnikId, b: korisnikId, davatelj: DAVATELJ, natrag: tok.natrag });
-			return redirect('/racun/spoji');
+	}
+
+	if (oibH) {
+		if (poOibu && poOibu !== korisnikId) {
+			// Ovaj @skole.hr već ima račun, a OIB drugi (Certilia): spajanje. Različiti
+			// OIB-ovi (račun ima Certiliju s drugim OIB-om) se ne spajaju.
+			const r = await spojiRacune(korisnikId, poOibu);
+			if (r.ok) {
+				korisnikId = r.cilj.id;
+				ishod = 'spojeno_oib';
+			} else console.warn('aai_oib_sukob', { razlog: r.razlog });
+		} else if (!poOibu) {
+			// Prvi OIB na računu: kasnija Certilia prijava nađe ovaj račun i ne otvara novi.
+			await env.DB.prepare('UPDATE korisnici SET oib_hash = ? WHERE id = ? AND oib_hash IS NULL').bind(oibH, korisnikId).run();
 		}
+	}
+
+	// Prijavljen drugim računom, a ovaj @skole.hr pripada drugom: ista osoba ima dva
+	// računa. Sesija ostaje na trenutnom, korisnik potvrđuje spajanje.
+	if (vec?.korisnikId && vec.korisnikId !== korisnikId) {
+		zapisi('predlozeno_spajanje', true, { claimovi: osoba.kljucevi });
+		await predloziSpajanje(cookies, { a: vec.korisnikId, b: korisnikId, davatelj: DAVATELJ, natrag: tok.natrag });
+		return redirect('/racun/spoji');
 	}
 
 	// Ime iz @skole.hr osvježava se samo na računu bez Certilije; Certilijino ime je iz e-Osobne.
 	const korisnik = await env.DB.prepare(
 		`UPDATE korisnici SET zadnja_prijava = datetime('now'),
-		   ime = iif(oib_hash IS NULL AND ?1 IS NOT NULL AND ?2 IS NOT NULL, ?1, ime),
-		   prezime = iif(oib_hash IS NULL AND ?1 IS NOT NULL AND ?2 IS NOT NULL, ?2, prezime)
+		   ime = iif(certilia = 0 AND ?1 IS NOT NULL AND ?2 IS NOT NULL, ?1, ime),
+		   prezime = iif(certilia = 0 AND ?1 IS NOT NULL AND ?2 IS NOT NULL, ?2, prezime)
 		 WHERE id = ?3 RETURNING ime, prezime`,
 	)
 		.bind(osoba.ime, osoba.prezime, korisnikId)

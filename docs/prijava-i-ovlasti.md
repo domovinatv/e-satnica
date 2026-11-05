@@ -51,11 +51,22 @@ Ulazi za korisnika: stranica **Račun** (`/racun`, poveznica u zaglavlju) pokazu
 koji su davatelji spojeni i nudi „Spoji Certiliju” / „Spoji @skole.hr”; ponuda
 pristupnog ključa nakon prve prijave podsjeća na to isto.
 
-Potpuno automatsko spajanje bilo bi moguće samo preko OIB-a: AAI@EduHr ima
-atribut `hrEduPersonOIB`, pa bi isti OIB iz Certilije i iz @skole.hr spojio
-račune bez ikakve radnje korisnika. Tražiti ga znači proširiti scope u Registru
-resursa uz javnu namjenu, što je odluka o minimizaciji podataka; dok nije donesena,
-vrijedi ručno spajanje iznad.
+**Automatsko spajanje preko OIB-a** (odluka Matija, 5. 11. 2026.: nula dvostrukih
+računa važnija je od jednog atributa manje). @skole.hr traži i `hrEduPersonOIB`,
+čim je scope s namjenom upisan u Registar resursa (var `AAI_OIB=1`; prije toga bi
+nepoznat scope srušio prijavu). OIB se, kao i Certilijin, sprema samo kao HMAC
+(`korisnici.oib_hash`) i služi isključivo spajanju:
+
+- @skole.hr prijava čiji OIB već ima račun (Certilia) ide na taj račun; ako je
+  @skole.hr već imao svoj račun, oba se spajaju bez pitanja.
+- @skole.hr račun bez OIB-a dobiva OIB otisak, pa ga kasnija Certilia prijava
+  nađe i ne otvara novi račun. Zato `oib_hash` više ne znači „ima Certiliju”;
+  to je zastavica `korisnici.certilia` (migracija 0006), a ime iz e-Osobne ima
+  prednost samo kad je ona 1.
+- Račun s Certilijom i drugim OIB-om od onog iz @skole.hr: ne spaja se, samo zapis
+  `aai_oib_sukob` u logu.
+
+Ručno spajanje iznad ostaje za slučaj kad OIB nije dostupan.
 
 ## Autorizacija: uloga u obrazovnom sustavu postoji samo kod CARNET-a
 

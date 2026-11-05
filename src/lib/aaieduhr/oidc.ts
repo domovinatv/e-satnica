@@ -4,7 +4,7 @@
 // Postupak i Pravilnik: docs/aaieduhr.md.
 import { env } from 'cloudflare:workers';
 import { authorizeUrl, otkrij, type OidcPostavke } from '../oidc/klijent';
-import { AAI_SCOPEOVI } from './claimovi';
+import { aaiScopeovi } from './claimovi';
 
 export function aaiJePodesena(): boolean {
 	return Boolean(env.AAI_CLIENT_ID && env.AAI_CLIENT_SECRET);
@@ -32,5 +32,5 @@ export function aaiOtkrivanje() {
 }
 
 export function aaiAuthorizeUrl(a: { state: string; nonce: string; codeVerifier: string }): Promise<string> {
-	return authorizeUrl(aaiPostavke(), { ...a, scope: AAI_SCOPEOVI.join(' ') });
+	return authorizeUrl(aaiPostavke(), { ...a, scope: aaiScopeovi(env.AAI_OIB === '1') });
 }

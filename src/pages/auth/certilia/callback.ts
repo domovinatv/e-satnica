@@ -69,15 +69,15 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 	const vec = await procitajSesiju(cookies.get(KOLACIC)?.value);
 	if (vec?.korisnikId) {
 		await env.DB.prepare(
-			'UPDATE korisnici SET oib_hash = ?1 WHERE id = ?2 AND oib_hash IS NULL AND NOT EXISTS (SELECT 1 FROM korisnici WHERE oib_hash = ?1)',
+			'UPDATE korisnici SET oib_hash = ?1, certilia = 1 WHERE id = ?2 AND oib_hash IS NULL AND NOT EXISTS (SELECT 1 FROM korisnici WHERE oib_hash = ?1)',
 		)
 			.bind(hash, vec.korisnikId)
 			.run();
 	}
 
 	const korisnik = await env.DB.prepare(
-		`INSERT INTO korisnici (oib_hash, ime, prezime) VALUES (?, ?, ?)
-		 ON CONFLICT (oib_hash) DO UPDATE SET ime = excluded.ime, prezime = excluded.prezime, zadnja_prijava = datetime('now')
+		`INSERT INTO korisnici (oib_hash, ime, prezime, certilia) VALUES (?, ?, ?, 1)
+		 ON CONFLICT (oib_hash) DO UPDATE SET ime = excluded.ime, prezime = excluded.prezime, certilia = 1, zadnja_prijava = datetime('now')
 		 RETURNING id`,
 	)
 		.bind(hash, ime, prezime)

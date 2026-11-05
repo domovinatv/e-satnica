@@ -96,6 +96,7 @@ Za sada se traže samo ovi scopeovi. Škola i uloga čekaju CARNET-ov odgovor.
 | `hrEduPersonPersistentID` | Prepoznavanje istog korisnika pri idućoj prijavi. Sprema se samo nepovratni otisak (HMAC), ne sama vrijednost. |
 | `givenName`, `sn` | Prikaz imena i prezimena autora uz prijedloge i komentare u e-satnici, kako bi rad tima bio javan i provjerljiv. |
 | `hrEduPersonPrimaryAffiliation` | Provjera je li korisnik djelatnik obrazovne ustanove. Čita se pri prijavi i ne sprema se. |
+| `hrEduPersonOIB` | Povezivanje s računom iste osobe otvorenim prijavom putem Certilije (NIAS), kako jedna osoba ne bi imala dva računa. Sprema se samo nepovratni otisak (HMAC), ne sam OIB. |
 
 ## Tko smije biti davatelj usluge
 

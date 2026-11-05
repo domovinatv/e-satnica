@@ -46,7 +46,6 @@ export function zaboraviPrijedlog(cookies: AstroCookies): void {
 
 export interface PregledRacuna extends RacunZaSpajanje {
 	created_at: string;
-	certilia: boolean;
 	skole: number;
 	kljucevi: number;
 	stavke: number;
@@ -55,7 +54,7 @@ export interface PregledRacuna extends RacunZaSpajanje {
 export async function pregledRacuna(id: number): Promise<PregledRacuna | null> {
 	return env.DB.prepare(
 		`SELECT k.id, k.oib_hash, k.ime, k.prezime, k.created_at,
-		   k.oib_hash IS NOT NULL AS certilia,
+		   k.certilia,
 		   (SELECT count(*) FROM identiteti WHERE korisnik_id = k.id AND davatelj = 'aaieduhr') AS skole,
 		   (SELECT count(*) FROM passkeyi WHERE korisnik_id = k.id) AS kljucevi,
 		   (SELECT count(*) FROM stavke WHERE korisnik_id = k.id) AS stavke

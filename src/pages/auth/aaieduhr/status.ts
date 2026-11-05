@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
-import { AAI_SCOPEOVI } from '../../../lib/aaieduhr/claimovi';
+import { aaiScopeovi } from '../../../lib/aaieduhr/claimovi';
 import { aaiOtkrivanje, aaiRedirectUri } from '../../../lib/aaieduhr/oidc';
 
 export const prerender = false;
@@ -16,7 +16,7 @@ export const GET: APIRoute = async () => {
 	return Response.json({
 		issuer,
 		redirectUri: aaiRedirectUri(),
-		scope: AAI_SCOPEOVI.join(' '),
+		scope: aaiScopeovi(env.AAI_OIB === '1'),
 		configured: {
 			clientId: Boolean(env.AAI_CLIENT_ID),
 			clientSecret: Boolean(env.AAI_CLIENT_SECRET),

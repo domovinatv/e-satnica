@@ -1,7 +1,7 @@
 // Pokretanje: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { aaiOsoba, prviString } from './claimovi.ts';
+import { aaiOsoba, aaiScopeovi, prviString } from './claimovi.ts';
 
 test('prviString: string, niz, prazno', () => {
 	assert.equal(prviString(' a '), 'a');
@@ -37,4 +37,18 @@ test('OIDC standardni nazivi kao rezerva', () => {
 	const o = aaiOsoba({ sub: 's', given_name: 'Ana', family_name: ['Kovač'] }, null);
 	assert.equal(o.ime, 'Ana');
 	assert.equal(o.prezime, 'Kovač');
+});
+
+test('OIB: samo 11 znamenki, iz userinfa, i kao niz', () => {
+	const id = { sub: 's' };
+	assert.equal(aaiOsoba(id, { sub: 's', hrEduPersonOIB: ['12345678901'] }).oib, '12345678901');
+	assert.equal(aaiOsoba(id, { sub: 's', hrEduPersonOIB: '1234' }).oib, null);
+	assert.equal(aaiOsoba(id, { sub: 's' }).oib, null);
+	// userinfo drugog subjekta se odbacuje, pa ni OIB iz njega ne vrijedi
+	assert.equal(aaiOsoba(id, { sub: 'drugi', hrEduPersonOIB: '12345678901' }).oib, null);
+});
+
+test('scope hrEduPersonOIB samo kad je uključen', () => {
+	assert.ok(!aaiScopeovi(false).includes('hrEduPersonOIB'));
+	assert.ok(aaiScopeovi(true).endsWith(' hrEduPersonOIB'));
 });
