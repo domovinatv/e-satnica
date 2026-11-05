@@ -56,7 +56,18 @@ const ovdje = encodeURIComponent('/racun');
 			<tr>
 				<th>@skole.hr</th>
 				<td>
-					{racun.skole > 0 ? 'spojen' : aai ? <a href={`/auth/aaieduhr/start?natrag=${ovdje}`}>Spoji @skole.hr</a> : 'uskoro'}
+					{racun.skole > 0 ? (
+						'spojen'
+					) : aai ? (
+						<a href={`/auth/aaieduhr/start?natrag=${ovdje}`}>Spoji @skole.hr</a>
+					) : aaiJePodesena() ? (
+						<>
+							pravi @skole.hr računi čekaju odobrenje Srca ·{' '}
+							<a href={`/auth/aaieduhr/start?natrag=${ovdje}`}>spoji testnog korisnika (@aai-test.hr)</a>
+						</>
+					) : (
+						'još nije dostupno'
+					)}
 				</td>
 			</tr>
 			<tr>
