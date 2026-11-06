@@ -107,8 +107,11 @@ flowchart TD
     SP --> OIB
     NOV --> OIB
     NOR --> OIB
-    OIB["Račun bez OIB-a dobiva OIB otisak;<br/>@skole.hr s vlastitim računom i Certilia račun<br/>istog OIB-a spajaju se bez pitanja"]
+    OIB["Račun bez OIB-a dobiva OIB otisak"]
 ```
+
+Ako je @skole.hr već imao vlastiti račun, a isti OIB ima i Certilia račun, ta se
+dva računa na kraju spajaju bez pitanja (`spojeno_oib`).
 
 ### Tijek: prijava Certilijom
 
