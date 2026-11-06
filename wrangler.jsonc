@@ -25,7 +25,8 @@
 		// Testni #3988 radi samo na Fed-Labu: AAI_ISSUER https://fed-lab.aaiedu.hr,
 		// AAI_REDIRECT_PATH /auth/aaieduhr/test/callback i njegovi secreti.
 		"AAI_ISSUER": "https://login.aaiedu.hr",
-		"AAI_JAVNO": "1"
+		"AAI_JAVNO": "1",
+		"AAI_OIB": "1"
 	},
 	// Secrets (wrangler secret put, nikad ovdje): SESIJA_KLJUC, CERTILIA_CLIENT_ID,
 	// CERTILIA_CLIENT_SECRET, AAI_CLIENT_ID, AAI_CLIENT_SECRET (Registar resursa AAI@EduHr).
