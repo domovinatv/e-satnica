@@ -198,8 +198,14 @@ status partnera.
   zahtjev pripremljen za #3988 (Fed-Lab).
 - Zamka: stranica OIDC konfiguracije u Registru prikazuje client secret u čistom tekstu. Čitati je
   alatom za snimku stranice znači da secret završi u kontekstu; za provjeru je dovoljan Client ID.
-- **Otvoreno**: `hrEduPersonOIB` čeka admina Srca na #3989 (i predaju/odobrenje na #3988); nakon odobrenja
-  `"AAI_OIB": "1"` u `wrangler.jsonc`, deploy, test spajanja preko OIB-a. Škola i uloga čekaju CARNET.
+- 6. 11. Srce odobrilo `hrEduPersonOIB` na #3989 → `"AAI_OIB": "1"`, deploy (ab60e1e). Provjera: authorize URL na
+  `/auth/aaieduhr/start` traži `hrEduPersonOIB`, a prva prijava (pravi @skole.hr) ga vraća u **userinfo**
+  (ne u id_tokenu). Ta je prijava otkrila rupu: veza iz vremena prije OIB-a spojila je @skole.hr jedne osobe
+  s Certilia računom druge, a kod to nije provjeravao. Popravak bdc7cb5, pravilo u
+  [prijava-i-ovlasti.md](prijava-i-ovlasti.md).
+- **Otvoreno**: grupa testira spajanje (6. 11. poslane upute: A Certilia → @skole.hr, B obrnuto); provjera u
+  `prijave` (ishodi `spojeno_oib`, `predlozeno_spajanje`, `razdvojeno_oib`, `novi_oib_razlicit`). Sinova sljedeća
+  prijava mora dati `razdvojeno_oib`. #3988 (Fed-Lab) OIB scope nije provjeren. Škola i uloga čekaju CARNET.
 
 ## Odgovor Srca (3. 11. 2026., tiket AAI #797385)
 
