@@ -22,6 +22,18 @@ Jedan korisnik može imati oba davatelja na istom računu (`korisnici.oib_hash` 
 Certiliju, `identiteti` za @skole.hr). Spajaju se tako da je korisnik prijavljen
 jednim i zatim se prijavi drugim.
 
+```mermaid
+flowchart LR
+    C["Certilia<br/>e-Osobna, mobileID"] -->|"OIB, ime iz e-Osobne"| R
+    A["@skole.hr<br/>AAI@EduHr"] -->|"hrEduPersonPersistentID,<br/>OIB, ime, povezanost"| R
+    P["Pristupni ključ"] -.->|"brzi ulaz na već<br/>potvrđen račun"| R
+    R[("Račun<br/>korisnici.oib_hash = HMAC(OIB)<br/>identiteti = HMAC(@skole.hr id)")]
+    R --> F1["Funkcije s pouzdanim<br/>identitetom građanina"]
+    R --> F2["Funkcije po ulozi i školi<br/>(čeka CARNET)"]
+    C -. "otključava" .-> F1
+    A -. "otključava" .-> F2
+```
+
 ## Jedna osoba, jedan račun (spajanje)
 
 Najgori ishod ovakvih sustava su dva računa iste osobe: jedan otvoren Certilijom,
@@ -73,6 +85,64 @@ nepoznat scope srušio prijavu). OIB se, kao i Certilijin, sprema samo kao HMAC
 
 Ručno spajanje iznad ostaje za slučaj kad OIB nije dostupan.
 
+### Tijek: prijava s @skole.hr
+
+Prema `src/pages/auth/aaieduhr/callback.ts`. „Sesija” je račun kojim je korisnik
+već prijavljen u tom pregledniku. U zagradama su ishodi kako ih bilježi tablica `prijave`.
+
+```mermaid
+flowchart TD
+    S(["@skole.hr vratio identitet i OIB"]) --> V{"Je li ovaj @skole.hr<br/>već vezan na račun?"}
+    V -->|da| VO{"Ima li taj račun<br/>drugi OIB?"}
+    VO -->|ne| SES["Prijava na taj račun<br/>(sesija)"]
+    VO -->|"da: veza od prije OIB-a"| RAZ["Veza se raskida"] --> N
+    V -->|ne| N{"Postoji li račun<br/>s ovim OIB-om?"}
+    N -->|da| SO["Veže se na taj račun<br/>(spojeno_oib)"]
+    N -->|ne| T{"Je li netko prijavljen<br/>i ima li njegov račun<br/>isti ili nikakav OIB?"}
+    T -->|da| SP["Veže se na račun sesije<br/>(spojeno)"]
+    T -->|"ne, nitko"| NOV["Novi račun<br/>(novi)"]
+    T -->|"ne, drugi OIB"| NOR["Novi račun, spajanje se ne nudi<br/>(novi_oib_razlicit / razdvojeno_oib)"]
+    SES --> OIB
+    SO --> OIB
+    SP --> OIB
+    NOV --> OIB
+    NOR --> OIB
+    OIB["Račun bez OIB-a dobiva OIB otisak;<br/>@skole.hr s vlastitim računom i Certilia račun<br/>istog OIB-a spajaju se bez pitanja"]
+```
+
+### Tijek: prijava Certilijom
+
+Prema `src/pages/auth/certilia/callback.ts`.
+
+```mermaid
+flowchart TD
+    S(["Certilia vratila OIB"]) --> T{"Je li netko prijavljen,<br/>bez OIB-a na računu,<br/>a ovaj OIB nema svoj račun?"}
+    T -->|da| UP["OIB se upisuje na račun sesije:<br/>@skole.hr i Certilia na istom računu"] --> ISTI
+    T -->|ne| ISTI["Račun s ovim OIB-om<br/>(nađe postojeći ili otvori novi)"]
+    ISTI --> D{"Je li sesija na drugom<br/>računu, bez OIB-a?"}
+    D -->|da| PS["/racun/spoji: korisnik bira<br/>(predlozeno_spajanje)"]
+    D -->|ne| SES["Prijava na račun ovog OIB-a<br/>(sesija)"]
+```
+
+### Primjer: zajedničko računalo (6. 11. 2026.)
+
+Roditelj je prijavljen Certilijom, a dijete se u istom pregledniku prijavi svojim
+@skole.hr. Prije OIB-a (5. 11.) to je spojilo dva identiteta u jedan račun. Od 6. 11.
+OIB-ovi se razlikuju, pa dijete dobiva svoj račun.
+
+```mermaid
+sequenceDiagram
+    actor R as Roditelj
+    actor D as Dijete
+    participant E as e-satnica
+    R->>E: prijava Certilijom (OIB roditelja)
+    E-->>R: sesija na računu roditelja
+    D->>E: prijava s @skole.hr u istom pregledniku (OIB djeteta)
+    E->>E: OIB djeteta ≠ OIB računa sesije
+    E-->>D: novi račun djeteta, spajanje se ne nudi
+    Note over E: Veza iz 5. 11. se na sljedećoj<br/>prijavi djeteta raskida (razdvojeno_oib)
+```
+
 ## Autorizacija: uloga u obrazovnom sustavu postoji samo kod CARNET-a
 
 Certilia ne zna radi li osoba u školi, u kojoj i kao što. To je zapisano samo u
@@ -100,8 +170,16 @@ djelatnik), 5. 11. 2026., `/auth/aaieduhr/start?debug=1`:
 
 Identitet se uzima iz `hrEduPersonPersistentID`, ime i prezime stižu, povezanost je
 `djelatnik`. Atributi stižu samo u userinfo, id_token nosi samo protokolarne
-claimove. Ovo je Fed-Lab; pravi skole.hr (produkcijski resurs) treba potvrditi istim
-postupkom.
+claimove.
+
+Produkcija (#3989, pravi @skole.hr), 6. 11. 2026., uz `AAI_OIB=1` (iz `prijave.claimovi`):
+
+| Izvor | Claimovi |
+|---|---|
+| id_token | isti kao na Fed-Labu |
+| userinfo | `givenName`, `hrEduPersonOIB`, `hrEduPersonPersistentID`, `hrEduPersonPrimaryAffiliation`, `sn`, `sub` |
+
+Produkcija se ponaša kao Fed-Lab, a OIB stiže u userinfo.
 
 Kad se prvi korisnici prijave s pravim @skole.hr, ovdje ide usporedba stvarnih odgovora
 obaju davatelja, claim po claim, s objašnjenjem što koji znači i za što ga
