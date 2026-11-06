@@ -82,16 +82,35 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 		? (await env.DB.prepare('SELECT id FROM korisnici WHERE oib_hash = ?').bind(oibH).first<{ id: number }>())?.id
 		: undefined;
 
+	// Račun čiji je OIB drugačiji od OIB-a iz @skole.hr pripada drugoj osobi: na njega
+	// se ovaj @skole.hr ne smije vezati (npr. roditelj prijavljen Certilijom, dijete s @skole.hr).
+	const drugaOsoba = async (id: number) => {
+		if (!oibH) return false;
+		const r = await env.DB.prepare('SELECT oib_hash FROM korisnici WHERE id = ?').bind(id).first<{ oib_hash: string | null }>();
+		return Boolean(r?.oib_hash && r.oib_hash !== oibH);
+	};
+
 	let korisnikId = (
 		await env.DB.prepare('SELECT korisnik_id FROM identiteti WHERE davatelj = ? AND id_hash = ?').bind(DAVATELJ, idHash).first<{ korisnik_id: number }>()
 	)?.korisnik_id;
 	let ishod = 'sesija';
+	let razdvojeno = false;
+
+	// Veza stvorena prije nego je OIB bio dostupan može spajati dvije osobe: raskida se,
+	// a @skole.hr dobiva vlastiti račun (ili račun sa svojim OIB-om).
+	if (korisnikId && (await drugaOsoba(korisnikId))) {
+		await env.DB.prepare('DELETE FROM identiteti WHERE davatelj = ? AND id_hash = ?').bind(DAVATELJ, idHash).run();
+		console.warn('aai_oib_razdvojeno', { korisnikId });
+		korisnikId = undefined;
+		razdvojeno = true;
+	}
+	const vecDruga = vec?.korisnikId ? await drugaOsoba(vec.korisnikId) : false;
 
 	if (!korisnikId) {
 		if (poOibu) {
 			korisnikId = poOibu;
 			ishod = 'spojeno_oib';
-		} else if (vec?.korisnikId) {
+		} else if (vec?.korisnikId && !vecDruga) {
 			korisnikId = vec.korisnikId;
 			ishod = 'spojeno';
 		} else {
@@ -101,7 +120,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 				.first<{ id: number }>();
 			if (!novi) return neuspjeh('baza');
 			korisnikId = novi.id;
-			ishod = 'novi';
+			ishod = razdvojeno ? 'razdvojeno_oib' : vecDruga ? 'novi_oib_razlicit' : 'novi';
 		}
 		// Dvije istodobne prve prijave: pobjeđuje prva, druga se prijavi na njen račun.
 		const veza = await env.DB.prepare(
@@ -133,7 +152,8 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
 
 	// Prijavljen drugim računom, a ovaj @skole.hr pripada drugom: ista osoba ima dva
 	// računa. Sesija ostaje na trenutnom, korisnik potvrđuje spajanje.
-	if (vec?.korisnikId && vec.korisnikId !== korisnikId) {
+	// Druga osoba (drugi OIB) se ne nudi za spajanje: odbilo bi se ionako.
+	if (vec?.korisnikId && vec.korisnikId !== korisnikId && !vecDruga) {
 		zapisi('predlozeno_spajanje', true, { claimovi: osoba.kljucevi });
 		await predloziSpajanje(cookies, { a: vec.korisnikId, b: korisnikId, davatelj: DAVATELJ, natrag: tok.natrag });
 		return redirect('/racun/spoji');

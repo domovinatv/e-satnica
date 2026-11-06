@@ -11,7 +11,7 @@ pitanja: **tko je korisnik** (autentifikacija) i **što smije** (autorizacija).
 | Ime i prezime | iz e-Osobne | iz imenika skole.hr (`givenName`, `sn`) |
 | Kriptografska težina | veća: mobileID na iOS/Androidu kao drugi faktor | korisničko ime i lozinka |
 | Imaju je | ne svi | svi nastavnici, ravnatelji i ostali djelatnici škola |
-| Ne zna | status u obrazovnom sustavu | OIB (ne tražimo ga) |
+| Ne zna | status u obrazovnom sustavu | ništa bitno (OIB stiže od 6. 11. 2026.) |
 
 Oba su dovoljna za prijavu i oba otvaraju račun. Nijedan nije „glavni” po vrijednosti.
 @skole.hr je samo češći ulaz, jer ga imaju svi u školama. Pristupni ključ (passkey)
@@ -65,6 +65,11 @@ nepoznat scope srušio prijavu). OIB se, kao i Certilijin, sprema samo kao HMAC
   prednost samo kad je ona 1.
 - Račun s Certilijom i drugim OIB-om od onog iz @skole.hr: ne spaja se, samo zapis
   `aai_oib_sukob` u logu.
+- @skole.hr se nikad ne veže na račun s drugim OIB-om (od 6. 11. 2026.). Ako je
+  netko prijavljen Certilijom pa se prijavi tuđim @skole.hr, taj @skole.hr dobiva
+  svoj račun (ishod `novi_oib_razlicit`) i spajanje se ne nudi. Veza nastala prije
+  OIB-a (npr. 5. 11. roditeljev Certilia račun + djetetov @skole.hr) se na prvoj
+  sljedećoj prijavi raskida (`razdvojeno_oib`, log `aai_oib_razdvojeno`).
 
 Ručno spajanje iznad ostaje za slučaj kad OIB nije dostupan.
 
