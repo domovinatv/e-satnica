@@ -1,0 +1,66 @@
+---
+// Putanja do stranice (npr. Lista / Katarina Bašić). Zadnja stavka je trenutna
+// stranica i ostaje poveznica, da putanja ima isti oblik na svakoj razini.
+interface Props {
+	stavke: { href: string; tekst: string }[];
+}
+const { stavke } = Astro.props;
+---
+
+<nav class="mrvice" aria-label="Putanja">
+	<ol>
+		{
+			stavke.map((s, i) => (
+				<li>
+					<a href={s.href} aria-current={i === stavke.length - 1 ? 'page' : undefined}>
+						{s.tekst}
+					</a>
+				</li>
+			))
+		}
+	</ol>
+</nav>
+
+<style>
+	ol {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 8px;
+		margin: 0 0 14px;
+		padding: 0;
+		list-style: none;
+		font-size: 0.94rem;
+	}
+	li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	/* Kosa crta je ukras: prazan zamjenski tekst je drži podalje od čitača zaslona. */
+	li + li::before {
+		content: '/';
+		content: '/' / '';
+		color: var(--na-moru-siva);
+	}
+	a {
+		color: var(--na-moru-siva);
+		text-underline-offset: 3px;
+	}
+	a:hover {
+		color: var(--na-moru);
+	}
+	a[aria-current='page'] {
+		font-weight: 700;
+		color: var(--na-moru);
+		text-decoration: none;
+	}
+	a:focus-visible {
+		outline-color: var(--na-moru);
+	}
+	@media (forced-colors: active) {
+		a[aria-current='page'] {
+			text-decoration: underline;
+		}
+	}
+</style>

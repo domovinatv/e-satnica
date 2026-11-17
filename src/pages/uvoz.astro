@@ -1,0 +1,80 @@
+---
+// Dokumenti koje je scripts/uvoz-natjecaja.ts našao na stranicama škola. Povjerenstvo
+// natječaj prepiše u oglase i označi ga obrađenim; ostalo odbaci.
+import Poruka from '../components/Poruka.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { datum } from '../lib/datumi';
+import { ucitajPrototip } from '../lib/prototip';
+import { tkoJe } from '../lib/unos';
+import { uvezeniDokumenti } from '../lib/uvoz';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const odlucuje = p ? tkoJe(p, Astro.locals.uloga)?.uloga.vrsta === 'povjerenstvo' : false;
+const dokumenti = await uvezeniDokumenti();
+const STANJE = { novo: ['Novo', 'pazi'], obraden: ['Obrađeno', 'dobro'], odbacen: ['Odbačeno', 'tiho'] } as const;
+const novih = dokumenti.filter((d) => d.stanje === 'novo').length;
+---
+
+<Javno naslov="Uvoz natječaja">
+	<Vrh naslov="Uvoz natječaja" slika="natjecaji" />
+
+	<main id="sadrzaj" class="sirina sadrzaj">
+		<Poruka />
+		{
+			dokumenti.length === 0 ? (
+				<p>
+					Nema pronađenih dokumenata. <code>node scripts/uvoz-natjecaja.ts</code>
+				</p>
+			) : (
+				<Tablica id="uvoz-naslov" naslov={`${dokumenti.length} dokumenata, ${novih} novih`} stupci={odlucuje ? ['Dokument', 'Škola', 'Objavljeno', 'Stanje', 'Radnja'] : ['Dokument', 'Škola', 'Objavljeno', 'Stanje']}>
+					{dokumenti.map((d) => (
+						<tr>
+							<th scope="row">
+								<a href={d.url} rel="noopener noreferrer">
+									{d.naslov}
+								</a>
+								{d.skola.fiktivna && <span class="oznaka pazi testno">testni podatak</span>}
+							</th>
+							<td>
+								{d.skola.naziv}
+								<span class="manje">{d.skola.mjesto}</span>
+							</td>
+							<td class="broj">
+								{datum(d.objavljeno, true)}
+								<span class="manje">nađeno {datum(d.pronadeno, true)}</span>
+							</td>
+							<td>
+								<span class:list={['oznaka', STANJE[d.stanje][1]]}>{STANJE[d.stanje][0]}</span>
+							</td>
+							{odlucuje && (
+								<td>
+									<form method="post" action="/unos/uvoz" class="radnje">
+										<input type="hidden" name="dokument" value={d.id} />
+										{d.stanje === 'novo' ? (
+											<>
+												<button type="submit" name="odluka" value="obradi" class="gumb">
+													Obrađeno
+												</button>
+												<button type="submit" name="odluka" value="odbaci" class="gumb sporedni">
+													Odbaci
+												</button>
+											</>
+										) : (
+											<button type="submit" name="odluka" value="vrati" class="gumb sporedni">
+												Vrati
+											</button>
+										)}
+									</form>
+								</td>
+							)}
+						</tr>
+					))}
+				</Tablica>
+			)
+		}
+	</main>
+</Javno>

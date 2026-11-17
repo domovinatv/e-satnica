@@ -1,0 +1,66 @@
+---
+// Radna stranica uloge: kazalo odjeljaka lijevo (na uskom zaslonu red na vrhu), sadržaj
+// desno. Uz odjeljak stoji broj onoga što čeka radnju te uloge. Poveznica odjeljka koji
+// je na zaslonu označena je s :target-current (scroll-target-group), a gdje toga nema,
+// skripta ispod radi isto s IntersectionObserverom.
+interface Props {
+	odjeljci: { id: string; naziv: string; ceka?: number }[];
+}
+const { odjeljci } = Astro.props;
+---
+
+<div class="radni">
+	<nav class="radni-nav" aria-label="Odjeljci">
+		<ul>
+			{
+				odjeljci.map((o) => (
+					<li>
+						<a href={`#${o.id}`}>
+							{o.naziv}
+							{o.ceka ? (
+								<span class="ceka-broj">
+									{o.ceka}
+									<span class="vizualno-skriveno"> čeka</span>
+								</span>
+							) : null}
+						</a>
+					</li>
+				))
+			}
+		</ul>
+		<div class="radni-dno">
+			<slot name="dno" />
+		</div>
+	</nav>
+	<div class="radni-sadrzaj">
+		<slot />
+	</div>
+</div>
+
+<script>
+	const poveznice = [...document.querySelectorAll<HTMLAnchorElement>('.radni-nav li > a')];
+	const oznaci = (aktivna: Element | null) => {
+		for (const a of poveznice) a.setAttribute('aria-current', a === aktivna ? 'true' : 'false');
+	};
+	if (CSS.supports('scroll-target-group: auto')) {
+		// Vidljivo stanje daje CSS; čitaču zaslona ga treba reći aria-current.
+		const uskladi = () => oznaci(document.querySelector('.radni-nav li > a:target-current'));
+		// Trenutni odjeljak preglednik zna tek nakon prvog iscrtavanja (i skoka na #odjeljak).
+		requestAnimationFrame(() => requestAnimationFrame(uskladi));
+		document.addEventListener('scrollend', uskladi);
+	} else if (poveznice.length > 0) {
+		const odjeljci = poveznice.map((a) => document.getElementById(a.hash.slice(1))).filter((o): o is HTMLElement => o !== null);
+		const promatrac = new IntersectionObserver(
+			(unosi) => {
+				for (const u of unosi) {
+					if (!u.isIntersecting) continue;
+					const aktivna = poveznice.find((a) => a.hash === `#${u.target.id}`) ?? null;
+					for (const a of poveznice) a.classList.toggle('target-current', a === aktivna);
+					oznaci(aktivna);
+				}
+			},
+			{ rootMargin: '-40% 0px -55% 0px' },
+		);
+		for (const o of odjeljci) promatrac.observe(o);
+	}
+</script>

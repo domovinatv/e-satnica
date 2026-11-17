@@ -1,0 +1,190 @@
+---
+// Uloga prijavljenog računa (Certilia, @skole.hr). Škola i uloga ne stižu uz prijavu
+// (otvoreno pitanje 26), pa ih korisnik zatraži: ravnatelja potvrđuje povjerenstvo,
+// nastavnika ravnatelj njegove škole, a kandidat izvana upisuje sebe sam.
+import NemaBaze from '../components/NemaBaze.astro';
+import Poruka from '../components/Poruka.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { danas, datum, pomakni } from '../lib/datumi';
+import { mjesta, predmeti, ucitajPrototip } from '../lib/prototip';
+import { KOLACIC_ULOGE, kolacicUlogeOpcije, parsirajUlogu, VRSTE_ULOGA, zapisiUlogu } from '../lib/uloga';
+import { potvrdeneUloge, ulogeKorisnika } from '../lib/uloge';
+
+export const prerender = false;
+
+const korisnikId = Astro.locals.korisnikId;
+if (!korisnikId) return Astro.redirect('/prijava?natrag=/uloga');
+
+// Odabir jedne od potvrđenih uloga; vrijedi samo ako je potvrđena.
+if (Astro.request.method === 'POST') {
+	const f = await Astro.request.formData();
+	const odabrana = parsirajUlogu(String(f.get('uloga') ?? ''));
+	const moje = await potvrdeneUloge(korisnikId);
+	if (!odabrana || !moje.some((u) => u.vrsta === odabrana.vrsta && u.id === odabrana.id)) return Astro.redirect('/uloga?greska=neispravno', 303);
+	Astro.cookies.set(KOLACIC_ULOGE, zapisiUlogu(odabrana), kolacicUlogeOpcije);
+	return Astro.redirect('/moje', 303);
+}
+
+const p = await ucitajPrototip();
+const zahtjevi = await ulogeKorisnika(korisnikId);
+const potvrdene = await potvrdeneUloge(korisnikId);
+const trenutna = Astro.locals.ulogaIzvor === 'potvrdena' ? Astro.locals.uloga : undefined;
+const STANJE = { ceka: ['Čeka potvrdu', 'pazi'], potvrdena: ['Potvrđena', 'dobro'], odbijena: ['Odbijena', 'lose'] } as const;
+const opis = (vrsta: string, cilj: string) =>
+	vrsta === 'ravnatelj' ? (p?.skole.find((s) => s.sifra === cilj)?.naziv ?? cilj) : vrsta === 'povjerenstvo' ? '' : (p?.poOznaci.get(cilj)?.punoIme ?? cilj);
+const zaposleni = (p?.nastavnici ?? []).filter((n) => n.vrsta === 'zaposlen');
+---
+
+<Javno naslov="Uloga">
+	<Vrh naslov="Uloga" slika="prijava" />
+
+	<main id="sadrzaj" class="sirina sadrzaj">
+		<Poruka />
+		{
+			!p ? (
+				<NemaBaze />
+			) : (
+				<>
+					{potvrdene.length > 0 && (
+						<Tablica id="moje-naslov" naslov="Moje uloge" stupci={['Uloga', 'Radnja']}>
+							{potvrdene.map((u) => {
+								const sada = trenutna?.vrsta === u.vrsta && trenutna.id === u.id;
+								return (
+									<tr>
+										<th scope="row">
+											{VRSTE_ULOGA[u.vrsta]}
+											<span class="manje">{opis(u.vrsta, u.id)}</span>
+										</th>
+										<td>
+											{sada ? (
+												<a href="/moje">Moj unos</a>
+											) : (
+												<form method="post" action="/uloga">
+													<input type="hidden" name="uloga" value={zapisiUlogu(u)} />
+													<button type="submit" class="gumb sporedni">
+														Odaberi
+													</button>
+												</form>
+											)}
+										</td>
+									</tr>
+								);
+							})}
+						</Tablica>
+					)}
+
+					{zahtjevi.some((z) => z.stanje !== 'potvrdena') && (
+						<Tablica id="zahtjevi-naslov" naslov="Zahtjevi" stupci={['Uloga', 'Zatraženo', 'Stanje']}>
+							{zahtjevi
+								.filter((z) => z.stanje !== 'potvrdena')
+								.map((z) => (
+									<tr>
+										<th scope="row">
+											{VRSTE_ULOGA[z.vrsta]}
+											<span class="manje">{opis(z.vrsta, z.cilj)}</span>
+										</th>
+										<td class="broj">{datum(z.zatrazeno, true)}</td>
+										<td>
+											<span class:list={['oznaka', STANJE[z.stanje][1]]}>{STANJE[z.stanje][0]}</span>
+										</td>
+									</tr>
+								))}
+						</Tablica>
+					)}
+
+					<h2 id="zatrazi">Zatraži ulogu</h2>
+					<ul class="kartice">
+						<li class="ploca">
+							<h3>Ravnatelj</h3>
+							<form class="unos" method="post" action="/unos/zatrazi-ulogu">
+								<input type="hidden" name="vrsta" value="ravnatelj" />
+								<div class="polje">
+									<label for="skola">Škola</label>
+									<select id="skola" name="cilj" required>
+										{p.skole.map((s) => (
+											<option value={s.sifra}>
+												{s.naziv}, {s.mjesto}
+											</option>
+										))}
+									</select>
+								</div>
+								<button type="submit" class="gumb">
+									Zatraži
+								</button>
+							</form>
+						</li>
+						<li class="ploca">
+							<h3>Nastavnik</h3>
+							<form class="unos" method="post" action="/unos/zatrazi-ulogu">
+								<input type="hidden" name="vrsta" value="nastavnik" />
+								<div class="polje">
+									<label for="nastavnik">Nastavnik</label>
+									<select id="nastavnik" name="cilj" required>
+										{zaposleni.map((n) => (
+											<option value={n.oznaka}>
+												{n.punoIme} · {n.zaposlenja.map((z) => z.skola.naziv).join(', ')}
+											</option>
+										))}
+									</select>
+								</div>
+								<button type="submit" class="gumb">
+									Zatraži
+								</button>
+							</form>
+						</li>
+					</ul>
+
+					<h2 id="kandidat">Kandidat izvana</h2>
+					<form class="unos ploca" method="post" action="/unos/zatrazi-ulogu" aria-labelledby="kandidat">
+						<input type="hidden" name="vrsta" value="kandidat" />
+						<div class="polja">
+						<div class="polje">
+							<label for="ime">Ime</label>
+							<input id="ime" name="ime" required minlength="2" maxlength="40" autocomplete="given-name" value={Astro.locals.ime?.split(' ')[0] ?? ''} />
+						</div>
+						<div class="polje">
+							<label for="prezime">Prezime</label>
+							<input id="prezime" name="prezime" required minlength="2" maxlength="40" autocomplete="family-name" />
+						</div>
+						<div class="polje">
+							<label for="predmet">Predmet</label>
+							<select id="predmet" name="predmet" required>
+								{predmeti(p).map((x) => (
+									<option value={x}>{x}</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="mjesto">Mjesto</label>
+							<select id="mjesto" name="mjesto" required>
+								{mjesta(p).map((x) => (
+									<option value={x}>{x}</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="rodjen">Datum rođenja</label>
+							<input type="date" id="rodjen" name="rodjen" required max={pomakni(danas(), -18 * 365)} autocomplete="bday" />
+						</div>
+						<div class="polje">
+							<label for="staz">Staž u obrazovanju</label>
+							<input type="number" id="staz" name="stazUObrazovanju" required min="0" max="50" step="1" inputmode="numeric" value="0" placeholder="navršene godine" />
+						</div>
+						<div class="polje puno">
+							<label for="kvalifikacija">Kvalifikacija</label>
+							<input id="kvalifikacija" name="kvalifikacija" maxlength="160" placeholder="npr. mag. educ. kemije, 2019." />
+						</div>
+						</div>
+						<div class="podnozje">
+							<button type="submit" class="gumb">
+								Upiši se
+							</button>
+						</div>
+					</form>
+				</>
+			)
+		}
+	</main>
+</Javno>

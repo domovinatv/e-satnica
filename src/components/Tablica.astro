@@ -1,0 +1,27 @@
+---
+// Tablica podataka. Retke daje stranica: prva ćelija je <th scope="row">, ostale <td>.
+// Stilovi su u styles/javno.css: na uskom zaslonu redak postaje kartica, a nazivi
+// stupaca dolaze iz varijabli --label-N koje se ovdje postavljaju.
+interface Props {
+	/** Jedinstven na stranici; njime se okvir tablice veže uz naslov. */
+	id: string;
+	naslov: string;
+	stupci: string[];
+	/** Naslov ostaje čitaču zaslona, ali se ne vidi (kad je odmah iznad već <h2>). */
+	skrivenNaslov?: boolean;
+}
+const { id, naslov, stupci, skrivenNaslov = false } = Astro.props;
+const oznake = stupci.map((s, i) => `--label-${i + 1}: ${JSON.stringify(s)}`).join('; ');
+---
+
+<div class="tablica-kontejner">
+	<div class="tablica-omot" tabindex="0" role="region" aria-labelledby={id}>
+		<table class="tablica" style={oznake}>
+			<caption id={id} class:list={{ 'vizualno-skriveno': skrivenNaslov }}>{naslov}</caption>
+			<thead>
+				<tr>{stupci.map((s) => <th scope="col">{s}</th>)}</tr>
+			</thead>
+			<tbody><slot /></tbody>
+		</table>
+	</div>
+</div>

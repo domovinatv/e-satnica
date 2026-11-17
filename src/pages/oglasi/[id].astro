@@ -1,6 +1,7 @@
 ---
 import SatiMjerilo from '../../components/SatiMjerilo.astro';
-import Oglasnik from '../../layouts/Oglasnik.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
 import { danaDoRoka, danas, datum, oblik, opisSati, RAZINE, ucitajOglas, UGOVORI } from '../../lib/oglasi';
 
 export const prerender = false;
@@ -8,24 +9,29 @@ export const prerender = false;
 const id = Number(Astro.params.id);
 const o = Number.isInteger(id) ? await ucitajOglas(id) : null;
 if (!o) Astro.response.status = 404;
+// Natječaj nastao u e-satnici su sati u stanju „Javni natječaj"; njihova stranica je životni put tih sati.
+if (o?.fiktivna === 1) return Astro.redirect(o.izvor_url);
 
 const dana = o ? danaDoRoka(o.rok, danas()) : 0;
 const istekao = dana < 0;
 ---
 
-<Oglasnik naslov={o ? `${o.predmet}, ${o.skola}` : 'Natječaj nije pronađen'}>
+<Javno naslov={o ? `${o.predmet}, ${o.skola}` : 'Natječaj nije pronađen'}>
 	{
 		o ? (
-			<main>
-				<header class="more">
-					<div class="sirina unutra">
-						<a class="natrag" href="/oglasi">Svi natječaji</a>
-						<h1>{o.predmet}</h1>
-						<p class="skola">
-							{o.skola}, {o.mjesto}
-						</p>
-					</div>
-				</header>
+			<main id="sadrzaj">
+				<Vrh
+					naslov={o.predmet}
+					slika="natjecaj"
+					mrvice={[
+						{ href: '/oglasi', tekst: 'Natječaji' },
+						{ href: `/oglasi/${o.id}`, tekst: o.predmet },
+					]}
+				>
+					<p>
+						{o.skola}, {o.mjesto}
+					</p>
+				</Vrh>
 				<div class="sirina sadrzaj">
 					<section class="satnica" aria-label="Satnica">
 						<SatiMjerilo sati={o.sati_tjedno} veliko />
@@ -45,7 +51,7 @@ const istekao = dana < 0;
 					</p>
 
 					<a class="gumb" href={o.izvor_url} rel="noopener">
-						Otvori natječaj na stranici škole
+						Natječaj škole
 					</a>
 
 					<dl>
@@ -82,7 +88,7 @@ const istekao = dana < 0;
 							<dd>
 								{datum(o.rok, true)}
 								{o.rok_izracunat === 1 && (
-									<p class="napomena">Izračunali smo ga kao osam dana od objave. Točan rok provjeri u natječaju.</p>
+									<p class="sitno">Izračunali smo ga kao osam dana od objave. Točan rok provjeri u natječaju.</p>
 								)}
 							</dd>
 						</div>
@@ -91,12 +97,12 @@ const istekao = dana < 0;
 					<section class="izvorno">
 						<h2>U natječaju piše</h2>
 						<blockquote>{o.izvorni_opis}</blockquote>
-						<p class="napomena">Prijava se šalje školi, prema uputama u natječaju. Ovdje se ne možeš prijaviti.</p>
+						<p class="sitno">Prijava se šalje školi, prema uputama u natječaju. Ovdje se ne možeš prijaviti.</p>
 					</section>
 				</div>
 			</main>
 		) : (
-			<main class="sirina prazno">
+			<main class="sirina prazno" id="sadrzaj">
 				<h1 class="prazno-naslov">Ovaj natječaj nije u popisu.</h1>
 				<p>
 					Možda je povučen ili je poveznica pogrešna. <a href="/oglasi">Pogledaj sve natječaje</a>.
@@ -104,38 +110,9 @@ const istekao = dana < 0;
 			</main>
 		)
 	}
-</Oglasnik>
+</Javno>
 
 <style>
-	.more {
-		padding: 10px 0 24px;
-		background: var(--pozadina-mora);
-		color: var(--na-moru);
-	}
-	.unutra {
-		padding: 0 16px;
-	}
-	.natrag {
-		display: inline-block;
-		margin-bottom: 16px;
-		color: var(--na-moru-siva);
-	}
-	.natrag:focus-visible {
-		outline-color: var(--na-moru);
-	}
-	h1 {
-		margin: 0;
-		font-family: var(--serif);
-		font-size: clamp(34px, 8vw, 60px);
-		font-weight: 600;
-		line-height: 1.08;
-		letter-spacing: -0.01em;
-	}
-	.skola {
-		margin: 8px 0 0;
-		font-size: 19px;
-		color: var(--na-moru-siva);
-	}
 	.sadrzaj {
 		padding: 24px 16px 0;
 	}
@@ -155,18 +132,6 @@ const istekao = dana < 0;
 	.stanje.hitno {
 		color: var(--crveno);
 	}
-	.gumb {
-		display: inline-block;
-		padding: 12px 20px;
-		font-weight: 600;
-		color: #ffffff;
-		text-decoration: none;
-		background: #0e3f8c;
-		border-radius: 6px;
-	}
-	.gumb:hover {
-		background: #0b3270;
-	}
 	dl {
 		max-width: 620px;
 		margin: 32px 0 0;
@@ -185,10 +150,8 @@ const istekao = dana < 0;
 	dd {
 		margin: 0;
 	}
-	.napomena {
+	.sitno {
 		margin: 4px 0 0;
-		font-size: 15px;
-		color: var(--siva);
 	}
 	.izvorno {
 		max-width: 620px;

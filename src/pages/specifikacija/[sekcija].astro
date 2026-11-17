@@ -25,8 +25,11 @@ const STANJA: Record<string, string> = {
 const sekcija = await getEntry('specifikacija', Astro.params.sekcija ?? '');
 if (!sekcija) return new Response('Nema te sekcije', { status: 404 });
 
+// Sekciju i unose tima (s imenom autora) čita svatko. Upisuju samo prijavljeni.
+const prijavljen = Astro.locals.sesija !== undefined;
+
 let greska = '';
-if (Astro.request.method === 'POST') {
+if (prijavljen && Astro.request.method === 'POST') {
 	const podaci = await Astro.request.formData();
 	const vrsta = String(podaci.get('vrsta') ?? '') as Vrsta;
 	const tekst = String(podaci.get('tekst') ?? '').trim();
@@ -51,23 +54,46 @@ const { results: stavke } = await env.DB.prepare(
 	.all<{ id: number; vrsta: Vrsta; tekst: string; autor: string; stanje: string; paket_id: number | null; created_at: string }>();
 ---
 
-<Osnova naslov={sekcija.data.naslov} sekcije={sekcije} aktivna={sekcija.id}>
-	<p class="meta samo-mobitel"><a href="/specifikacija">← Specifikacija</a></p>
-	<h1>{sekcija.data.naslov}</h1>
+<Osnova
+	naslov={sekcija.data.naslov}
+	sekcije={sekcije}
+	aktivna={sekcija.id}
+	slika="specifikacija"
+	mrvice={[
+		{ href: '/specifikacija', tekst: 'Specifikacija' },
+		{ href: `/specifikacija/${sekcija.id}`, tekst: sekcija.data.naslov },
+	]}
+>
 	<Content />
 	{sekcija.data.tablicaKriterija && <TablicaKriterija />}
 
-	<h2 id="unos">Tvoj unos</h2>
-	<form method="post">
-		<label for="vrsta">Vrsta</label>
-		<select id="vrsta" name="vrsta" required>
-			{Object.entries(VRSTE).map(([k, v]) => <option value={k}>{v}</option>)}
-		</select>
-		<label for="tekst">Tekst</label>
-		<textarea id="tekst" name="tekst" required maxlength="5000"></textarea>
-		{greska && <p class="greska">{greska}</p>}
-		<button type="submit">Spremi</button>
-	</form>
+	{
+		prijavljen ? (
+			<>
+				<h2 id="unos">Tvoj unos</h2>
+				<form method="post">
+					<label for="vrsta">Vrsta</label>
+					<select id="vrsta" name="vrsta" required>
+						{Object.entries(VRSTE).map(([k, v]) => (
+							<option value={k}>{v}</option>
+						))}
+					</select>
+					<label for="tekst">Tekst</label>
+					<textarea id="tekst" name="tekst" required maxlength="5000" />
+					{greska && <p class="greska">{greska}</p>}
+					<p class="meta">
+						Unos je javno vidljiv uz tvoje ime, i bez prijave. <a href="/privatnost">Privatnost</a>
+					</p>
+					<button type="submit">Spremi</button>
+				</form>
+			</>
+		) : (
+			<p class="meta">
+				Za upis komentara, zahtjeva ili pitanja uz ovu sekciju potrebna je{' '}
+				<a href={`/prijava?natrag=${encodeURIComponent(`/specifikacija/${sekcija.id}`)}`}>prijava</a>.
+			</p>
+		)
+	}
 
 	<h2 id="unosi">Unosi ({stavke.length})</h2>
 	{stavke.length === 0 && <p class="meta">Još nema unosa.</p>}

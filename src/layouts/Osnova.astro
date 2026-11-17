@@ -1,5 +1,11 @@
 ---
+import '@fontsource-variable/literata/opsz.css';
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+import '../styles/tokeni.css';
 import PopisSekcija from '../components/PopisSekcija.astro';
+import Vrh from '../components/Vrh.astro';
+import Zaglavlje from '../components/Zaglavlje.astro';
+import type { Slika } from '../lib/slike';
 import type { SekcijaUPopisu } from '../lib/sekcije';
 
 interface Props {
@@ -7,9 +13,12 @@ interface Props {
 	// Kad su zadane, na desktopu stoje lijevo uz sadržaj; na mobitelu se ne prikazuju.
 	sekcije?: SekcijaUPopisu[];
 	aktivna?: string;
+	/** Naslov u plavom vrhu, ako se razlikuje od naslova u kartici preglednika. */
+	h1?: string;
+	slika?: Slika;
+	mrvice?: { href: string; tekst: string }[];
 }
-const { naslov, sekcije, aktivna } = Astro.props;
-const ime = Astro.locals.ime;
+const { naslov, sekcije, aktivna, h1, slika, mrvice } = Astro.props;
 ---
 
 <!doctype html>
@@ -17,22 +26,14 @@ const ime = Astro.locals.ime;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
 		<meta name="robots" content="noindex" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<title>{naslov} · e-satnica</title>
 	</head>
 	<body>
-		<header>
-			<a href="/specifikacija" class="logo">e-satnica</a>
-			{
-				ime && (
-					<form method="post" action="/odjava" class="tko">
-						{ime} · {Astro.locals.korisnikId && <><a href="/racun">Račun</a> · </>}
-						<button type="submit" class="odjava">Odjava</button>
-					</form>
-				)
-			}
-		</header>
+		<Zaglavlje />
+		<Vrh naslov={h1 ?? naslov} slika={slika} mrvice={mrvice} />
 		{
 			sekcije ? (
 				<div class="okvir">
@@ -54,64 +55,46 @@ const ime = Astro.locals.ime;
 			const blokovi = document.querySelectorAll('pre > code.language-mermaid');
 			if (blokovi.length) {
 				const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs');
-				const tamno = matchMedia('(prefers-color-scheme: dark)').matches;
-				mermaid.initialize({ startOnLoad: false, theme: tamno ? 'dark' : 'default', securityLevel: 'strict' });
+				const tamno = matchMedia('(prefers-color-scheme: dark)');
 				const cvorovi = [...blokovi].map((code) => {
 					const div = document.createElement('div');
 					div.className = 'mermaid';
-					div.textContent = code.textContent;
+					div.dataset.izvor = code.textContent;
 					code.parentElement.replaceWith(div);
 					return div;
 				});
-				await mermaid.run({ nodes: cvorovi });
+				const nacrtaj = async () => {
+					mermaid.initialize({ startOnLoad: false, theme: tamno.matches ? 'dark' : 'default', securityLevel: 'strict' });
+					for (const div of cvorovi) {
+						div.removeAttribute('data-processed');
+						div.textContent = div.dataset.izvor;
+					}
+					await mermaid.run({ nodes: cvorovi });
+				};
+				await nacrtaj();
+				// Tema sustava se može promijeniti dok je stranica otvorena.
+				tamno.addEventListener('change', nacrtaj);
 			}
 		</script>
 	</body>
 </html>
 
 <style is:global>
+	/* Boje su u styles/tokeni.css, zajedničke s javnim stranicama; ovdje samo stara imena. */
 	:root {
-		--plava: #1d4ed8;
-		--plava-svijetla: #eff4ff;
-		--tekst: #1f2937;
-		--siva: #6b7280;
-		--rub: #e5e7eb;
-		--pozadina: #ffffff;
-		--zaglavlje: 53px;
-		color-scheme: light dark;
-	}
-	@media (prefers-color-scheme: dark) {
-		:root {
-			--plava: #7aa2ff;
-			--plava-svijetla: #172036;
-			--tekst: #e5e7eb;
-			--siva: #9ca3af;
-			--rub: #2d3748;
-			--pozadina: #0f1420;
-		}
+		--plava: var(--more);
+		--plava-svijetla: var(--nebo);
+		--tekst: var(--tinta);
+		--rub: var(--crta);
+		--pozadina: var(--papir);
 	}
 	* { box-sizing: border-box; }
 	body {
 		margin: 0;
-		font: 17px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+		font: 17px/1.6 var(--sans);
 		color: var(--tekst);
 		background: var(--pozadina);
 	}
-	header {
-		position: sticky;
-		top: 0;
-		z-index: 1;
-		height: var(--zaglavlje);
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0 16px;
-		border-bottom: 1px solid var(--rub);
-		background: var(--pozadina);
-	}
-	.logo { font-weight: 700; color: var(--plava); text-decoration: none; font-size: 20px; }
-	.tko { color: var(--siva); font-size: 15px; }
-	.odjava { margin: 0; padding: 0; background: none; color: var(--plava); font-weight: 400; font-size: 15px; }
 	main { padding: 16px 16px 64px; }
 	.sam, .desno { max-width: 760px; margin: 0 auto; }
 	.lijevo { display: none; }
@@ -124,8 +107,8 @@ const ime = Astro.locals.ime;
 		.lijevo {
 			display: block;
 			position: sticky;
-			top: var(--zaglavlje);
-			height: calc(100vh - var(--zaglavlje));
+			top: 0;
+			height: 100vh;
 			overflow-y: auto;
 			padding: 16px;
 			border-right: 1px solid var(--rub);
@@ -144,7 +127,7 @@ const ime = Astro.locals.ime;
 	.mermaid { margin: 16px 0; overflow-x: auto; text-align: center; }
 	blockquote { margin: 16px 0; padding: 8px 16px; border-left: 4px solid var(--plava); background: var(--plava-svijetla); }
 	a { color: var(--plava); }
-	h1 { line-height: 1.25; }
+	h1 { line-height: 1.25; font-family: var(--serif); font-weight: 600; }
 	table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
 	th, td { border: 1px solid var(--rub); padding: 6px 8px; text-align: left; vertical-align: top; }
 	label { display: block; font-weight: 600; margin: 12px 0 4px; }
@@ -165,7 +148,7 @@ const ime = Astro.locals.ime;
 		padding: 10px 18px;
 		border: 0;
 		border-radius: 8px;
-		background: var(--plava);
+		background: #0e3f8c;
 		color: #fff;
 		cursor: pointer;
 	}

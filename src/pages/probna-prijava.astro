@@ -1,0 +1,196 @@
+---
+import Poruka from '../components/Poruka.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { danas, pomakni } from '../lib/datumi';
+import { mjesta, predmeti, ucitajPrototip } from '../lib/prototip';
+import { noviKandidat, tkoJe } from '../lib/unos';
+import { KOLACIC_ULOGE, kolacicUlogeOpcije, probnaPrijavaUkljucena, procitajUlogu, VRSTE_ULOGA, zapisiUlogu } from '../lib/uloga';
+
+export const prerender = false;
+
+const ukljucena = probnaPrijavaUkljucena();
+const p = ukljucena ? await ucitajPrototip() : null;
+
+if (Astro.request.method === 'POST') {
+	if (!ukljucena || !p) return new Response('Nema te stranice', { status: 404 });
+	const f = await Astro.request.formData();
+	const akcija = String(f.get('akcija') ?? '');
+	if (akcija === 'odjava') {
+		Astro.cookies.delete(KOLACIC_ULOGE, { path: '/' });
+		return Astro.redirect('/probna-prijava?ok=odjava', 303);
+	}
+	// Novi kandidat se upisuje u bazu i odmah ulazi u svoju ulogu.
+	const uloga = akcija === 'novi-kandidat' ? (await noviKandidat(p, f)).uloga : procitajUlogu(`${f.get('vrsta')}:${f.get('id') ?? ''}`);
+	if (!uloga || (akcija !== 'novi-kandidat' && !tkoJe(p, uloga))) return Astro.redirect('/probna-prijava?greska=neispravno', 303);
+	Astro.cookies.set(KOLACIC_ULOGE, zapisiUlogu(uloga), kolacicUlogeOpcije);
+	return Astro.redirect('/moje?ok=uloga', 303);
+}
+
+const tko = p ? tkoJe(p, Astro.locals.uloga) : null;
+const zaposleni = (p?.nastavnici ?? []).filter((n) => n.vrsta === 'zaposlen');
+const kandidati = (p?.nastavnici ?? []).filter((n) => n.vrsta === 'kandidat');
+const najkasnijeRodjen = pomakni(danas(), -18 * 365);
+---
+
+<Javno naslov="Probna prijava">
+	<Vrh naslov="Probna prijava" fiktivno slika="prijava" />
+
+	<main id="sadrzaj" class="sirina sadrzaj">
+		<Poruka />
+		{
+			!ukljucena ? (
+				<div class="prazno">
+					<p class="prazno-naslov">Probna prijava ovdje nije uključena.</p>
+					<p>
+						Unos u prototip moguć je samo uz probnu prijavu, koja se uključuje postavkom <code>PROBNA_PRIJAVA=1</code>. Sve
+						ostalo se čita bez prijave.
+					</p>
+				</div>
+			) : !p ? (
+				<div class="prazno">
+					<p class="prazno-naslov">Podaci prototipa još nisu upisani.</p>
+					<p>
+						Upisuju se naredbom <code>npm run db:fiktivno</code>.
+					</p>
+				</div>
+			) : (
+				<>
+
+					{tko && (
+						<div class="napomena">
+							<p>
+								Sada si: <strong>{VRSTE_ULOGA[tko.uloga.vrsta]}{tko.skola && `, ${tko.skola.naziv}`}{tko.osoba && `, ${tko.osoba.punoIme}`}</strong>.{' '}
+								<a href="/moje">Moj unos</a>
+							</p>
+							<form method="post" action="/probna-prijava">
+								<input type="hidden" name="akcija" value="odjava" />
+								<button type="submit" class="gumb sporedni">
+									Izađi
+								</button>
+							</form>
+						</div>
+					)}
+
+					<h2 id="uloga">Uloga</h2>
+					<ul class="kartice">
+						<li class="ploca">
+							<h3>Povjerenstvo</h3>
+							<form class="unos" method="post" action="/probna-prijava">
+								<input type="hidden" name="vrsta" value="povjerenstvo" />
+								<button type="submit" class="gumb">
+									Uđi
+								</button>
+							</form>
+						</li>
+						<li class="ploca">
+							<h3>Ravnatelj</h3>
+							<form class="unos" method="post" action="/probna-prijava">
+								<input type="hidden" name="vrsta" value="ravnatelj" />
+								<div class="polje">
+									<label for="skola">Škola</label>
+									<select id="skola" name="id" required>
+										{p.skole.map((s) => (
+											<option value={s.sifra}>
+												{s.naziv}, {s.mjesto}
+											</option>
+										))}
+									</select>
+								</div>
+								<button type="submit" class="gumb">
+									Uđi
+								</button>
+							</form>
+						</li>
+						<li class="ploca">
+							<h3>Nastavnik</h3>
+							<form class="unos" method="post" action="/probna-prijava">
+								<input type="hidden" name="vrsta" value="nastavnik" />
+								<div class="polje">
+									<label for="nastavnik">Nastavnik</label>
+									<select id="nastavnik" name="id" required>
+										{zaposleni.map((n) => (
+											<option value={n.oznaka}>
+												{n.punoIme} · {n.predmet} · {n.mjesto}
+											</option>
+										))}
+									</select>
+								</div>
+								<button type="submit" class="gumb">
+									Uđi
+								</button>
+							</form>
+						</li>
+						<li class="ploca">
+							<h3>Kandidat</h3>
+							<form class="unos" method="post" action="/probna-prijava">
+								<input type="hidden" name="vrsta" value="kandidat" />
+								<div class="polje">
+									<label for="kandidat">Kandidat</label>
+									<select id="kandidat" name="id" required>
+										{kandidati.map((n) => (
+											<option value={n.oznaka}>
+												{n.punoIme} · {n.predmet} · {n.mjesto}
+											</option>
+										))}
+									</select>
+								</div>
+								<button type="submit" class="gumb">
+									Uđi
+								</button>
+							</form>
+						</li>
+					</ul>
+
+					<h2 id="novi-kandidat">Novi kandidat</h2>
+					<form class="unos ploca" method="post" action="/probna-prijava" aria-labelledby="novi-kandidat">
+						<input type="hidden" name="akcija" value="novi-kandidat" />
+						<div class="polja">
+						<div class="polje">
+							<label for="ime">Ime</label>
+							<input id="ime" name="ime" required minlength="2" maxlength="40" autocomplete="off" />
+						</div>
+						<div class="polje">
+							<label for="prezime">Prezime</label>
+							<input id="prezime" name="prezime" required minlength="2" maxlength="40" autocomplete="off" />
+						</div>
+						<div class="polje">
+							<label for="predmet">Predmet</label>
+							<select id="predmet" name="predmet" required>
+								{predmeti(p).map((x) => (
+									<option value={x}>{x}</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="mjesto">Mjesto</label>
+							<select id="mjesto" name="mjesto" required>
+								{mjesta(p).map((x) => (
+									<option value={x}>{x}</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="rodjen">Datum rođenja</label>
+							<input type="date" id="rodjen" name="rodjen" required max={najkasnijeRodjen} />
+						</div>
+						<div class="polje">
+							<label for="staz">Staž u obrazovanju</label>
+							<input type="number" id="staz" name="stazUObrazovanju" required min="0" max="50" step="1" inputmode="numeric" value="0" placeholder="navršene godine" />
+						</div>
+						<div class="polje puno">
+							<label for="kvalifikacija">Kvalifikacija</label>
+							<input id="kvalifikacija" name="kvalifikacija" maxlength="160" autocomplete="off" placeholder="npr. mag. educ. kemije, 2019." />
+						</div>
+						</div>
+						<div class="podnozje">
+							<button type="submit" class="gumb">
+								Upiši kandidata
+							</button>
+						</div>
+					</form>
+				</>
+			)
+		}
+	</main>
+</Javno>

@@ -32,7 +32,7 @@ flowchart LR
 
 U županijskoj tablici dob nosi većinu bodova: osoba od 42 godine dobije 84 od ukupno 109. Na OŠ listi SDŽ ručni zbroj je pogrešan u 6 od 120 redaka, što je argument za automatski izračun. Kriteriji za invaliditet, dijete s teškoćama i prethodne viškove postoje u pravilniku, ali ne i u objavljenoj tablici.
 
-Kolektivni ugovori za osnovne i srednje škole su različiti. Nacrt predlaže **iste kriterije za oba**, jer se isti predmeti predaju u oba.
+Kolektivni ugovori za osnovne i srednje škole su različiti. Nacrt predlaže **iste kriterije za oba**, jer se isti predmeti predaju u oba. Kristina i pravnica su 31. 10. zaključile da prijedlog treba biti jedan sustav za osnovne i srednje škole, s istim kriterijima; tekst pišu njih dvije. Bodovanje se danas razlikuje i od županije do županije.
 
 ## Što sustav još mora znati
 
@@ -40,3 +40,11 @@ Kolektivni ugovori za osnovne i srednje škole su različiti. Nacrt predlaže **
 - **Trajanje** ponude: određeno ili neodređeno, i koliko dugo.
 - **Kako se dokazuje** svaki kriterij i gdje se dokaz predaje.
 - Rad u **više škola** istovremeno; na županijskoj listi neki rade u četiri.
+
+## Tko mijenja kriterije (prijedlog iz rasprave, 31. 10.)
+
+Prijedlog: o izmjenama kriterija glasaju svi nastavnici prijavljeni u aplikaciju, a tablica se usklađuje s izglasanim, primjerice jednom mjesečno.
+
+To treba pomiriti s pravilom s vrha stranice, po kojem se tablica zaključava prije izračuna. Glasanje zato može dati samo **novu verziju za idući ciklus**, a ne mijenjati tablicu po kojoj je lista već izračunata.
+
+**Otvoreno:** tko ima pravo glasa, tko izglasano pravno provjerava prije zaključavanja i ima li smisla mjesečni ritam uz godišnji ciklus raspodjele (otvoreno pitanje 22).

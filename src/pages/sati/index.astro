@@ -1,0 +1,149 @@
+---
+import NemaBaze from '../../components/NemaBaze.astro';
+import Stanje from '../../components/Stanje.astro';
+import Tablica from '../../components/Tablica.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
+import { danas, datum, sati } from '../../lib/datumi';
+import { ucitajPrototip } from '../../lib/prototip';
+import { jeStanje, STANJA, type Stanje as VrstaStanja } from '../../lib/sati/stanja';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const sada = danas();
+const upit = Astro.url.searchParams;
+const stanje = upit.get('stanje') ?? '';
+const predmet = upit.get('predmet') ?? '';
+const skola = upit.get('skola') ?? '';
+const samoKasne = upit.get('kasne') === '1';
+
+const svi = [...(p?.sati ?? [])].sort((a, b) => (b.prijelazi.at(-1)?.vrijeme ?? '').localeCompare(a.prijelazi.at(-1)?.vrijeme ?? ''));
+const predmeti = [...new Set(svi.map((s) => s.predmet))].sort((a, b) => a.localeCompare(b, 'hr'));
+// Samo škole koje su nešto prijavile; po školi se vidi što je koja prijavila i kada.
+const skole = (p?.skole ?? []).filter((x) => svi.some((s) => s.skola === x));
+const prikazani = svi.filter(
+	(s) => (!jeStanje(stanje) || s.stanje === stanje) && (!predmet || s.predmet === predmet) && (!skola || s.skola.sifra === skola) && (!samoKasne || s.kasna),
+);
+const filtrirano = jeStanje(stanje) || Boolean(predmet) || Boolean(skola) || samoKasne;
+const poStanju = (Object.keys(STANJA) as VrstaStanja[]).map((k) => ({ k, n: svi.filter((s) => s.stanje === k).length }));
+const kasnih = svi.filter((s) => s.kasna).length;
+---
+
+<Javno naslov="Slobodni sati">
+	<Vrh naslov="Slobodni sati" fiktivno slika="sati" />
+
+	{
+		!p ? (
+			<NemaBaze />
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+
+				<search>
+					<form class="filteri" action="/sati" method="get">
+						<div class="polje">
+							<label for="stanje">Stanje</label>
+							<select id="stanje" name="stanje">
+								<option value="">Sva stanja</option>
+								{poStanju.map(({ k, n }) => (
+									<option value={k} selected={k === stanje}>
+										{STANJA[k]} ({n})
+									</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="predmet">Predmet</label>
+							<select id="predmet" name="predmet">
+								<option value="">Svi predmeti</option>
+								{predmeti.map((x) => (
+									<option value={x} selected={x === predmet}>
+										{x}
+									</option>
+								))}
+							</select>
+						</div>
+						<div class="polje">
+							<label for="skola">Škola</label>
+							<select id="skola" name="skola">
+								<option value="">Sve škole</option>
+								{skole.map((x) => (
+									<option value={x.sifra} selected={x.sifra === skola}>
+										{x.naziv}, {x.mjesto}
+									</option>
+								))}
+							</select>
+						</div>
+						<div class="izbor">
+							<label>
+								<input type="checkbox" name="kasne" value="1" checked={samoKasne} /> Kasne prijave ({kasnih})
+							</label>
+						</div>
+						<button type="submit" class="gumb">
+							Prikaži
+						</button>
+						{filtrirano && <a href="/sati">Poništi</a>}
+					</form>
+				</search>
+
+				{prikazani.length === 0 ? (
+					<div class="prazno">
+						<p class="prazno-naslov">Nema sati za ove uvjete.</p>
+						<p>
+							Promijeni uvjete ili <a href="/sati">pogledaj sve sate</a>.
+						</p>
+					</div>
+				) : (
+					<Tablica
+						id="sati-naslov"
+						naslov={`${prikazani.length} od ${svi.length} prijavljenih potreba`}
+						stupci={['Sati', 'Škola', 'Ugovor', 'Nastalo', 'Prijavljeno', 'Stanje', 'Ishod']}
+					>
+						{prikazani.map((s) => (
+							<tr>
+								<th scope="row">
+									<a href={`/sati/${s.oznaka}`}>
+										{s.predmet}, {sati(s.sati)}
+									</a>
+									<span class="manje">{s.oznaka}</span>
+								</th>
+								<td>
+									{s.skola.naziv}
+									<span class="manje">{s.skola.mjesto}</span>
+								</td>
+								<td>{s.ugovor === 'neodredeno' ? 'Neodređeno' : 'Određeno'}</td>
+								<td class="broj">{datum(s.nastalo, true)}</td>
+								<td class="broj">
+									{s.prijavljeno ? datum(s.prijavljeno, true) : 'još nije'}
+									{s.kasna && <span class="oznaka lose">kasna prijava</span>}
+								</td>
+								<td>
+									<Stanje stanje={s.stanje} />
+								</td>
+								<td>
+									{s.stanje === 'natjecaj' && s.oglas ? (
+										<span class="manje dobitnik">{s.oglas.rok >= sada ? `Rok ${datum(s.oglas.rok)}` : `Rok istekao ${datum(s.oglas.rok)}`}</span>
+									) : (
+										s.dodjele.map((d) => (
+											<span class="manje dobitnik">
+												<a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>, {sati(d.koliko)}
+											</span>
+										))
+									)}
+								</td>
+							</tr>
+						))}
+					</Tablica>
+				)}
+
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.dobitnik {
+		font-size: 1rem;
+		color: var(--tinta);
+	}
+</style>

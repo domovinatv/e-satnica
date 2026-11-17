@@ -1,0 +1,329 @@
+---
+// Lista i raspodjela na jednom mjestu: tko je na kojem mjestu, što je dobio i s kojim
+// ishodom. Ispod su kandidati izvana i provjera izlaza.
+import NemaBaze from '../../components/NemaBaze.astro';
+import SatiMjerilo from '../../components/SatiMjerilo.astro';
+import Tablica from '../../components/Tablica.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
+import { danas, datum, datumIVrijeme, oblik, sati } from '../../lib/datumi';
+import { uRadnoVrijeme } from '../../lib/norme';
+import { izracunaj, KORACI, objavljenoJeIsto, redPrijavljenih, redZaSate, ucitajPrototip } from '../../lib/prototip';
+
+export const prerender = false;
+
+const SKUPINE = { visak: 'Višak', nepuna: 'Nepuna satnica', kandidati: 'Kandidati' } as const;
+
+const p = await ucitajPrototip();
+const upit = Astro.url.searchParams;
+const predmet = upit.get('predmet') ?? '';
+const skupina = upit.get('skupina') ?? '';
+// Otvoreno pitanje 17: što bi bilo da sate u koraku 2 prvo dobivaju ljudi iz iste škole.
+const unutarSkole = upit.get('pravilo') === 'skola';
+// Privremena lista je snimka kako je objavljena; konačna se računa iz podataka.
+const privremena = upit.get('lista') === 'privremena';
+const osnovni = p ? izracunaj(p, false) : null;
+const izracun = p ? (unutarSkole ? izracunaj(p, true) : osnovni) : null;
+const r = izracun?.rezultat;
+const sada = danas();
+
+const satiPoOznaci = new Map((p?.sati ?? []).map((s) => [s.oznaka, s]));
+const redovi = (r?.lista ?? []).map((m) => ({
+	m,
+	n: p!.poOznaci.get(m.id)!,
+	s: r!.satnica[m.id],
+	bez: r!.bezSati.find((b) => b.osoba === m.id),
+	dobiva: r!.dodjele.filter((d) => d.osoba === m.id),
+}));
+// Otvoreni natječaji i red prednosti za svaki, da se uz kandidata vidi gdje je u redu.
+const otvoreni = p ? p.sati.filter((s) => s.stanje === 'natjecaj' && s.oglas !== null && s.oglas.rok >= sada).map((s) => ({ s, red: redZaSate(p, s) })) : [];
+const kandidati = (p?.nastavnici ?? [])
+	.filter((n) => n.vrsta === 'kandidat')
+	.sort((a, b) => a.predmet.localeCompare(b.predmet, 'hr') || b.bodovi.ukupno - a.bodovi.ukupno || a.oznaka.localeCompare(b.oznaka));
+
+const predmeti = [...new Set([...redovi.map((x) => x.n.predmet), ...kandidati.map((n) => n.predmet)])].sort((a, b) => a.localeCompare(b, 'hr'));
+const prikazani =
+	skupina === 'kandidati' ? [] : redovi.filter((x) => (!predmet || x.n.predmet === predmet) && (skupina === 'visak' ? x.n.visak > 0 : skupina === 'nepuna' ? x.n.visak === 0 : true));
+const prikazaniKandidati = skupina === 'visak' || skupina === 'nepuna' ? [] : kandidati.filter((n) => !predmet || n.predmet === predmet);
+const filtrirano = Boolean(predmet) || skupina in SKUPINE || unutarSkole || privremena;
+const usporedba = redovi
+	.filter((x) => x.n.privremeno && (!predmet || x.n.predmet === predmet))
+	.sort((a, b) => a.n.privremeno!.mjesto - b.n.privremeno!.mjesto);
+
+const dodijeljeno = (r?.dodjele ?? []).reduce((z, d) => z + d.sati, 0);
+const naNatjecaj = (r?.ostatak ?? []).reduce((z, o) => z + o.sati, 0);
+const isto = p && osnovni ? objavljenoJeIsto(p, osnovni) : false;
+const razlike =
+	unutarSkole && osnovni && r
+		? osnovni.rezultat.lista
+				.map((m) => ({ n: p!.poOznaci.get(m.id)!, prije: osnovni.rezultat.satnica[m.id].poslije, poslije: r.satnica[m.id].poslije }))
+				.filter((x) => x.prije !== x.poslije)
+		: [];
+---
+
+<Javno naslov="Lista">
+	<Vrh naslov="Lista" fiktivno slika="lista" />
+
+	{
+		!p || !izracun || !r ? (
+			<NemaBaze />
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+				<p>
+					{p.ciklus.skolska_godina} · tablica <a href="/kriteriji">{p.ciklus.verzija_tablice}</a> · privremena {datum(p.ciklus.privremena_lista, true)} · zaključana{' '}
+					{datumIVrijeme(p.ciklus.zakljucavanje)} · konačna {datum(p.ciklus.konacna_lista, true)}
+				</p>
+
+				<search>
+					<form class="filteri" action="/lista" method="get">
+						<div class="polje">
+							<label for="predmet">Predmet</label>
+							<select id="predmet" name="predmet">
+								<option value="">Svi predmeti</option>
+								{predmeti.map((x) => (
+									<option value={x} selected={x === predmet}>
+										{x}
+									</option>
+								))}
+							</select>
+						</div>
+						<fieldset>
+							<legend>Skupina</legend>
+							<div class="izbor">
+								<label>
+									<input type="radio" name="skupina" value="" checked={!(skupina in SKUPINE)} /> Svi
+								</label>
+								{Object.entries(SKUPINE).map(([k, v]) => (
+									<label>
+										<input type="radio" name="skupina" value={k} checked={skupina === k} /> {v}
+									</label>
+								))}
+							</div>
+						</fieldset>
+						<fieldset>
+							<legend>Lista</legend>
+							<div class="izbor">
+								<label>
+									<input type="radio" name="lista" value="" checked={!privremena} /> Konačna
+								</label>
+								<label>
+									<input type="radio" name="lista" value="privremena" checked={privremena} /> Privremena
+								</label>
+							</div>
+						</fieldset>
+						<fieldset>
+							<legend>Pravilo za nadopunu</legend>
+							<div class="izbor">
+								<label>
+									<input type="radio" name="pravilo" value="" checked={!unutarSkole} /> Po bodovima
+								</label>
+								<label>
+									<input type="radio" name="pravilo" value="skola" checked={unutarSkole} /> Prvo iz iste škole
+								</label>
+							</div>
+						</fieldset>
+						<button type="submit" class="gumb">
+							Prikaži
+						</button>
+						{filtrirano && <a href="/lista">Poništi</a>}
+					</form>
+				</search>
+
+				{unutarSkole && (
+					<div class="napomena pazi">
+						<p>
+							<strong>Nije objavljena raspodjela.</strong>{' '}
+							{razlike.length === 0 ? 'Ishod je isti.' : `Mijenja se satnica ${razlike.length} ${oblik(razlike.length, 'osobe', 'osoba', 'osoba')}:`}
+						</p>
+						{razlike.length > 0 && (
+							<ul>
+								{razlike.map((x) => (
+									<li>
+										<a href={`/lista/${x.n.oznaka}`}>{x.n.punoIme}</a> ({x.n.bodovi.ukupno} bodova): {x.prije} → {x.poslije} od {sati(x.n.norma)}
+									</li>
+								))}
+							</ul>
+						)}
+					</div>
+				)}
+
+				{privremena && (
+					<>
+						<Tablica
+							id="privremena-naslov"
+							naslov={`Privremena lista ${datum(p.ciklus.privremena_lista, true)} i konačna lista`}
+							stupci={['Nastavnik', 'Privremeno', 'Bodovi', 'Konačno', 'Bodovi', 'Razlika']}
+						>
+							{usporedba.map(({ m, n }) => {
+								const razlika = m.rezultat.ukupno - n.privremeno!.bodovi;
+								return (
+									<tr>
+										<th scope="row">
+											<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+											<span class="manje">
+												{n.oznaka} · {n.predmet}
+											</span>
+										</th>
+										<td class="broj">{n.privremeno!.mjesto}.</td>
+										<td class="broj">{n.privremeno!.bodovi}</td>
+										<td class="broj">{m.mjesto}.</td>
+										<td class="broj">{m.rezultat.ukupno}</td>
+										<td>{razlika === 0 ? '' : <span class="oznaka pazi">{razlika > 0 ? `+${razlika}` : razlika}</span>}</td>
+									</tr>
+								);
+							})}
+						</Tablica>
+					</>
+				)}
+
+				{!privremena && skupina !== 'kandidati' &&
+					(prikazani.length === 0 ? (
+						<div class="prazno">
+							<p class="prazno-naslov">Nitko na listi ne odgovara ovim uvjetima.</p>
+							<p>
+								<a href="/lista">Cijela lista</a>
+							</p>
+						</div>
+					) : (
+						<>
+							<Tablica
+								id="lista-naslov"
+								naslov={`${prikazani.length} od ${redovi.length} na listi · ${sati(dodijeljeno)} dodijeljeno · ${sati(naNatjecaj)} na natječaj`}
+								stupci={['Nastavnik', 'Mjesto', 'Predmet', 'Bodovi', 'Dobiva', 'Satnica', 'Ishod']}
+							>
+								{prikazani.map(({ m, n, s, bez, dobiva }) => {
+									const radno = uRadnoVrijeme(s.poslije, n.predmet);
+									const radnoPrije = uRadnoVrijeme(s.prije, n.predmet);
+									return (
+										<tr>
+											<th scope="row">
+												<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+												<span class="manje">
+													{n.oznaka} · {n.mjesto}
+												</span>
+											</th>
+											<td class="broj">
+												{m.mjesto}. {m.zaRucnuProvjeru && <span class="oznaka pazi">ručna provjera</span>}
+											</td>
+											<td>{n.predmet}</td>
+											<td class="broj">{m.rezultat.ukupno}</td>
+											<td>
+												{dobiva.map((d) => {
+													const slobodni = satiPoOznaci.get(izracun.satiZa(d.potreba));
+													return (
+														<span class="stavka">
+															{sati(d.sati)}, {slobodni ? <a href={`/sati/${slobodni.oznaka}`}>{slobodni.skola.naziv}</a> : d.potreba} ({d.km} km), {KORACI[d.korak].toLowerCase()}
+															{d.unutarSkole && ', iz iste škole'}
+														</span>
+													);
+												})}
+											</td>
+											<td>
+												<SatiMjerilo
+													sati={radno}
+													novi={radno - radnoPrije}
+													opis={`${s.poslije} od ${s.norma} sati nastave, od toga ${s.poslije - s.prije} dobiveno raspodjelom`}
+												/>
+												<span class="manje">
+													{s.poslije === s.prije ? `${s.prije}` : `${s.prije} + ${s.poslije - s.prije}`} od {sati(s.norma)}
+												</span>
+											</td>
+											<td>
+												{!bez ? (
+													<span class="oznaka dobro">Puna norma</span>
+												) : bez.korak === 1 ? (
+													<span class="oznaka lose">Nezbrinut višak: {sati(bez.nedostaje)}</span>
+												) : (
+													<span class="oznaka pazi">Fali {sati(bez.nedostaje)}</span>
+												)}
+											</td>
+										</tr>
+									);
+								})}
+							</Tablica>
+							<p class="sitno">Zelene crtice: sati dobiveni raspodjelom.</p>
+						</>
+					))}
+
+				{!privremena && prikazaniKandidati.length > 0 && (
+					<>
+						<h2 id="kandidati">Kandidati</h2>
+						<Tablica id="kandidati-naslov" naslov="Kandidati izvana, po predmetu i bodovima" skrivenNaslov stupci={['Kandidat', 'Predmet', 'Bodovi', 'Kvalifikacija', 'Dobiveno', 'Natječaji']}>
+							{prikazaniKandidati.map((n) => {
+								const moji = otvoreni.filter(({ red }) => red.some((u) => u.osoba === n.oznaka)).map(({ s }) => ({ s, mjesto: redPrijavljenih(p, s).findIndex((u) => u.osoba === n.oznaka) + 1 }));
+								return (
+									<tr>
+										<th scope="row">
+											<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+											<span class="manje">
+												{n.oznaka} · {n.mjesto}
+											</span>
+										</th>
+										<td>{n.predmet}</td>
+										<td class="broj">{n.bodovi.ukupno}</td>
+										<td>{n.kvalifikacija}</td>
+										<td>
+											{n.dodjele.map((d) => (
+												<span class="stavka">
+													{sati(d.koliko)}, <a href={`/sati/${d.sati.oznaka}`}>{d.sati.skola.naziv}</a>
+												</span>
+											))}
+										</td>
+										<td>
+											{moji.map(({ s, mjesto }) => (
+												<span class="stavka">
+													<a href={`/sati/${s.oznaka}`}>{s.skola.naziv}</a>, do {datum(s.oglas!.rok)}: {mjesto > 0 ? `${mjesto}. od ${s.prijavljeni.size} prijavljenih` : 'bez prijave'}
+												</span>
+											))}
+										</td>
+									</tr>
+								);
+							})}
+						</Tablica>
+					</>
+				)}
+
+				<h2 id="provjera">Provjera</h2>
+				<ul class="provjere">
+					{izracun.provjere.map((c) => (
+						<li>
+							<span class:list={['oznaka', c.ok ? 'dobro' : 'lose']}>{c.ok ? 'Prošlo' : 'Nije prošlo'}</span>
+							<span>
+								{c.naziv}
+								{c.detalj.map((d) => (
+									<span class="sitno stavka">{d}</span>
+								))}
+							</span>
+						</li>
+					))}
+					{!unutarSkole && (
+						<li>
+							<span class:list={['oznaka', isto ? 'dobro' : 'lose']}>{isto ? 'Prošlo' : 'Nije prošlo'}</span>
+							<span>Ponovljeni izračun daje istu raspodjelu kao objavljena konačna lista od {datum(p.ciklus.konacna_lista, true)}</span>
+						</li>
+					)}
+				</ul>
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.stavka {
+		display: block;
+	}
+	.provjere {
+		max-width: 80ch;
+		margin: 12px 0;
+		padding: 0;
+		list-style: none;
+	}
+	.provjere li {
+		display: grid;
+		grid-template-columns: 110px minmax(0, 1fr);
+		gap: 12px;
+		align-items: start;
+		padding: 8px 0;
+		border-bottom: 1px solid var(--crta);
+	}
+</style>

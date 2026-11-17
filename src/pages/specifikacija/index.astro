@@ -5,15 +5,24 @@ import { ucitajSekcije } from '../../lib/sekcije';
 
 export const prerender = false;
 
+const prijavljen = Astro.locals.sesija !== undefined;
 const sekcije = await ucitajSekcije();
 ---
 
-<Osnova naslov="Specifikacija" sekcije={sekcije}>
-	<h1>Specifikacija</h1>
-	<p>
-		Radna verzija. Uz svaku sekciju upiši komentar, zahtjev ili pitanje. Prihvaćene stavke skupljamo u pakete i iz
-		njih radimo iduću iteraciju.
-	</p>
+<Osnova naslov="Specifikacija" sekcije={sekcije} slika="specifikacija">
+	{
+		prijavljen ? (
+			<p>
+				Radna verzija. Uz svaku sekciju upiši komentar, zahtjev ili pitanje. Prihvaćene stavke skupljamo u pakete i iz
+				njih radimo iduću iteraciju.
+			</p>
+		) : (
+			<p>
+				Radna verzija, otvorena svima za čitanje. Uz svaku sekciju vide se komentari, zahtjevi i pitanja tima; za
+				upis je potrebna <a href="/prijava?natrag=%2Fspecifikacija">prijava</a>.
+			</p>
+		)
+	}
 	<p class="meta samo-desktop">Odaberi sekciju lijevo.</p>
 	<div class="samo-mobitel">
 		<PopisSekcija sekcije={sekcije} />

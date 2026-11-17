@@ -1,0 +1,263 @@
+---
+import Poruka from '../../components/Poruka.astro';
+import SatiMjerilo from '../../components/SatiMjerilo.astro';
+import Stanje from '../../components/Stanje.astro';
+import Tablica from '../../components/Tablica.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
+import { danas, danaIzmedju, datum, datumIVrijeme, oblik, sati } from '../../lib/datumi';
+import { uRadnoVrijeme } from '../../lib/norme';
+import { KORACI, redZaSate, SKUPINE, ucitajPrototip } from '../../lib/prototip';
+import { tkoJe } from '../../lib/unos';
+import { jeZavrsno, PRIJELAZI, STANJA, type Stanje as VrstaStanja } from '../../lib/sati/stanja';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const s = p?.sati.find((x) => x.oznaka === Astro.params.oznaka);
+if (!p || !s) Astro.response.status = 404;
+
+const sada = danas();
+const TKO = { ravnatelj: 'Ravnatelj', povjerenstvo: 'Povjerenstvo', sustav: 'Sustav' } as const;
+const dalje = s ? (Object.entries(PRIJELAZI[s.stanje]) as [VrstaStanja, string][]) : [];
+// Red prednosti ima smisla dok sati još nisu dodijeljeni ni odbijeni.
+const otvoreni = s !== undefined && !jeZavrsno(s.stanje);
+const red = p && s && otvoreni ? redZaSate(p, s) : [];
+const dodijeljeno = s ? s.dodjele.reduce((z, d) => z + d.koliko, 0) : 0;
+const radno = s ? uRadnoVrijeme(s.sati, s.predmet) : 0;
+const danaDoPrijave = s?.prijavljeno ? danaIzmedju(s.nastalo, s.prijavljeno) : null;
+const natjecajOtvoren = s?.stanje === 'natjecaj' && s.oglas !== null && s.oglas.rok >= sada;
+const ja = p ? tkoJe(p, Astro.locals.uloga)?.osoba : undefined;
+const mogu = ja !== undefined && natjecajOtvoren && red.some((u) => u.osoba === ja.oznaka);
+const napustio = s?.izZaposlenja ? p?.nastavnici.find((n) => n.zaposlenja.includes(s.izZaposlenja!)) : undefined;
+---
+
+<Javno naslov={s ? `${s.predmet}, ${sati(s.sati)}, ${s.skola.naziv}` : 'Sati nisu pronađeni'}>
+	{
+		p && s ? (
+			<>
+				<Vrh
+					naslov={`${s.predmet}, ${sati(s.sati)}`}
+					fiktivno
+					slika="sati"
+					mrvice={[
+						{ href: '/sati', tekst: 'Slobodni sati' },
+						{ href: `/sati/${s.oznaka}`, tekst: s.oznaka },
+					]}
+				>
+					<p>
+						{s.skola.naziv}, {s.skola.mjesto} · {s.ugovor === 'neodredeno' ? 'na neodređeno' : 'na određeno'}
+					</p>
+				</Vrh>
+
+				<main id="sadrzaj" class="sirina sadrzaj">
+					<Poruka />
+					<p class="stanje-red">
+						<Stanje stanje={s.stanje} />
+						{s.kasna && <span class="oznaka lose">Kasna prijava</span>}
+						{s.uCiklusu && <span class="oznaka tiho">Godišnja raspodjela {p.ciklus.skolska_godina}</span>}
+					</p>
+
+					<SatiMjerilo veliko sati={radno} />
+					<p>
+						<strong>{sati(s.sati)} nastave tjedno</strong> ({radno} od 40 sati radnog vremena)
+					</p>
+
+					<dl class="podaci">
+						<div>
+							<dt>Škola</dt>
+							<dd>
+								<a href={`/sati?skola=${s.skola.sifra}`}>{s.skola.naziv}</a>, {s.skola.mjesto}
+							</dd>
+						</div>
+						<div>
+							<dt>Razlog</dt>
+							<dd>{s.razlog}</dd>
+						</div>
+						{napustio && (
+							<div>
+								<dt>Oslobodio/la</dt>
+								<dd>
+									<a href={`/lista/${napustio.oznaka}`}>{napustio.punoIme}</a>, zamjenom u koraku 3
+								</dd>
+							</div>
+						)}
+						<div>
+							<dt>Ugovor</dt>
+							<dd>
+								{s.ugovor === 'neodredeno' ? 'Neodređeno' : 'Određeno'}
+								{s.trajanje && <span class="sitno blok">{s.trajanje}</span>}
+							</dd>
+						</div>
+						<div>
+							<dt>Potreba nastala</dt>
+							<dd>{datum(s.nastalo, true)}</dd>
+						</div>
+						<div>
+							<dt>Prijavljena</dt>
+							<dd>
+								{s.prijavljeno ? (
+									<>
+										{datumIVrijeme(s.prijavljeno)}
+										<span class="sitno blok">
+											{danaDoPrijave === 0 ? 'isti dan' : `${danaDoPrijave} ${oblik(danaDoPrijave ?? 0, 'dan', 'dana', 'dana')} nakon što je nastala`}
+											{s.kasna && `, nakon roka ${datum(p.ciklus.rok_prijave, true)}`}
+										</span>
+									</>
+								) : (
+									'još nije prijavljena u sustav'
+								)}
+							</dd>
+						</div>
+					</dl>
+
+
+					<h2 id="put">Životni put</h2>
+					<ol class="koraci">
+						{s.prijelazi.map((x) => (
+							<li>
+								<p class="naslov">{STANJA[x.u]}</p>
+								<p class="sitno">
+									{datumIVrijeme(x.vrijeme)} · {TKO[x.tko]}
+								</p>
+								{x.napomena && <p>{x.napomena}</p>}
+							</li>
+						))}
+						{dalje.length > 0 && (
+							<li class="ceka">
+								<p class="naslov">Slijedi</p>
+								<ul>
+									{dalje.map(([stanje, razlog]) => (
+										<li>
+											{STANJA[stanje]}: {razlog}
+										</li>
+									))}
+								</ul>
+							</li>
+						)}
+					</ol>
+
+					{s.dodjele.length > 0 && (
+						<>
+							<h2 id="ishod">Dodijeljeno</h2>
+							<Tablica
+								id="ishod-naslov"
+								naslov={`${dodijeljeno} od ${sati(s.sati)}`}
+								stupci={['Osoba', 'Sati', 'Kako', 'Bodovi', 'Udaljenost']}
+							>
+								{s.dodjele.map((d) => (
+									<tr>
+										<th scope="row">
+											<a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>
+											<span class="manje">
+												{d.nastavnik.oznaka} · {d.nastavnik.mjesto}
+											</span>
+										</th>
+										<td class="broj">{d.koliko}</td>
+										<td>
+											{KORACI[d.korak]}
+											{d.napusta && <span class="manje">napušta {d.napusta.skola.naziv}, {d.napusta.skola.mjesto}</span>}
+										</td>
+										<td class="broj">{d.nastavnik.bodovi.ukupno}</td>
+										<td class="broj">{d.km} km</td>
+									</tr>
+								))}
+							</Tablica>
+						</>
+					)}
+
+					{s.oglas && (
+						<div class="napomena">
+							<p>
+								{s.oglas.rok >= sada ? `Natječaj je otvoren do ${datum(s.oglas.rok, true)}` : `Natječaj je bio otvoren od ${datum(s.oglas.objavljeno, true)} do ${datum(s.oglas.rok, true)}`}
+								{' · '}
+								{s.prijavljeni.size} {oblik(s.prijavljeni.size, 'prijava', 'prijave', 'prijava')}
+							</p>
+							{mogu && (
+								<form method="post" action="/unos/natjecaj">
+									<input type="hidden" name="sati" value={s.oznaka} />
+									<input type="hidden" name="akcija" value={s.prijavljeni.has(ja!.oznaka) ? 'povuci' : 'prijavi'} />
+									<button type="submit" class:list={['gumb', { sporedni: s.prijavljeni.has(ja!.oznaka) }]}>
+										{s.prijavljeni.has(ja!.oznaka) ? 'Povuci prijavu' : 'Prijavi se'}
+									</button>
+								</form>
+							)}
+						</div>
+					)}
+
+					{otvoreni && (
+						<>
+							<h2 id="red">Red prednosti{s.preostalo < s.sati && ` (preostalo ${sati(s.preostalo)})`}</h2>
+							{red.length === 0 ? (
+								<p class="napomena pazi">Nitko ne ispunjava uvjete.</p>
+							) : (
+								<Tablica
+									id="red-naslov"
+									naslov="Red prednosti za ove sate"
+									skrivenNaslov
+									stupci={s.stanje === 'natjecaj' ? ['Osoba', 'Red', 'Skupina', 'Bodovi', 'Fali', 'Udaljenost', 'Prijava'] : ['Osoba', 'Red', 'Skupina', 'Bodovi', 'Fali', 'Udaljenost']}
+								>
+									{red.map((u, i) => {
+										const n = p.poOznaci.get(u.osoba)!;
+										return (
+											<tr class:list={{ tiho: s.stanje === 'natjecaj' && !s.prijavljeni.has(u.osoba) }}>
+												<th scope="row">
+													<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+													<span class="manje">
+														{n.oznaka} · {n.mjesto}
+													</span>
+												</th>
+												<td class="broj">{i + 1}.</td>
+												<td>{SKUPINE[u.skupina]}</td>
+												<td class="broj">{u.bodovi}</td>
+												<td class="broj">{sati(u.nedostaje)}</td>
+												<td class="broj">{u.km} km</td>
+												{s.stanje === 'natjecaj' && <td>{s.prijavljeni.has(u.osoba) ? 'Prijavljen/a' : '—'}</td>}
+											</tr>
+										);
+									})}
+								</Tablica>
+							)}
+							{s.odbili.size > 0 && (
+								<p class="sitno">
+									Odbili ponudu: {[...s.odbili].map((o) => p.poOznaci.get(o)?.punoIme ?? o).join(', ')}.
+								</p>
+							)}
+						</>
+					)}
+				</main>
+			</>
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+				<div class="prazno">
+					<h1 class="prazno-naslov">Tih sati nema u sustavu.</h1>
+					<p>
+						Možda je oznaka pogrešna. <a href="/sati">Pogledaj sve slobodne sate</a>.
+					</p>
+				</div>
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.stanje-red {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		margin: 0 0 16px;
+	}
+	.blok {
+		display: block;
+	}
+	.koraci ul {
+		margin: 4px 0 0;
+		padding-left: 20px;
+	}
+	tr.tiho {
+		opacity: 0.7;
+	}
+	.napomena form {
+		margin-top: 8px;
+	}
+</style>

@@ -1,6 +1,7 @@
 ---
 import RedakOglasa from '../../components/RedakOglasa.astro';
-import Oglasnik from '../../layouts/Oglasnik.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
 import {
 	citajFiltere,
 	danas,
@@ -36,24 +37,21 @@ const IZBORNICI = [
 ];
 ---
 
-<Oglasnik naslov="Slobodni sati u školama">
+<Javno naslov="Slobodni sati u školama" opis="Otvoreni natječaji za učitelje i stručne suradnike u školama, na jednom mjestu.">
+	<Vrh naslov={naslov} slika="natjecaji">
+		<search class="trazi">
+			<input
+				type="search"
+				name="q"
+				form="filteri"
+				value={filteri.q}
+				placeholder="Predmet, škola ili mjesto"
+				aria-label="Pretraži natječaje po predmetu, školi ili mjestu"
+			/>
+			<button type="submit" form="filteri">Traži</button>
+		</search>
+	</Vrh>
 	<form id="filteri" action="/oglasi" method="get">
-		<header class="more">
-			<div class="sirina unutra">
-				<h1>{naslov}</h1>
-				<p class="uvod">Neslužben popis javnih natječaja za učitelje i stručne suradnike. Prijava ide izravno školi.</p>
-				<div class="trazi">
-					<input
-						type="search"
-						name="q"
-						value={filteri.q}
-						placeholder="Predmet, škola ili mjesto"
-						aria-label="Pretraži natječaje po predmetu, školi ili mjestu"
-					/>
-					<button type="submit">Traži</button>
-				</div>
-			</div>
-		</header>
 		<div class="traka">
 			<div class="sirina izbornici">
 				{
@@ -84,7 +82,7 @@ const IZBORNICI = [
 		</div>
 	</form>
 
-	<main class="sirina">
+	<main class="sirina" id="sadrzaj">
 		{
 			otvoreni.length > 0 ? (
 				<ul class="popis">
@@ -119,8 +117,9 @@ const IZBORNICI = [
 				</details>
 			)
 		}
+		<p class="izvor">Neslužben popis. Mjerodavan je natječaj škole.</p>
 	</main>
-</Oglasnik>
+</Javno>
 
 <script>
 	const forma = document.querySelector<HTMLFormElement>('#filteri');
@@ -136,33 +135,19 @@ const IZBORNICI = [
 </script>
 
 <style>
-	.more {
-		padding: 10px 0 20px;
-		background: var(--pozadina-mora);
-		color: var(--na-moru);
-	}
-	.unutra {
+	.izvor {
+		max-width: 72ch;
+		margin: 24px 0 0;
 		padding: 0 16px;
-	}
-	h1 {
-		margin: 0;
-		max-width: 28ch;
-		font-family: var(--serif);
-		font-size: clamp(30px, 6.4vw, 50px);
-		font-weight: 600;
-		line-height: 1.12;
-		letter-spacing: -0.01em;
-		text-wrap: balance;
-	}
-	.uvod {
-		max-width: 60ch;
-		margin: 10px 0 16px;
-		color: var(--na-moru-siva);
+		font-size: 0.94rem;
+		color: var(--siva);
 	}
 	.trazi {
 		display: flex;
+		margin-top: 18px;
 		gap: 8px;
 		max-width: 560px;
+		margin-top: 16px;
 	}
 	.trazi input {
 		flex: 1;

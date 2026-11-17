@@ -1,0 +1,988 @@
+---
+// Radna stranica uloge: ovdje se unosi. Što je čija radnja, određuje src/lib/unos.ts;
+// ova stranica samo prikazuje obrasce koji toj ulozi pripadaju. Kazalo lijevo vodi do
+// odjeljaka i broji ono što čeka radnju ove uloge.
+import Odjeljak from '../components/Odjeljak.astro';
+import Poruka from '../components/Poruka.astro';
+import RadniOkvir from '../components/RadniOkvir.astro';
+import SatiMjerilo from '../components/SatiMjerilo.astro';
+import Stanje from '../components/Stanje.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { danas, datum, datumIVrijeme, oblik, sati } from '../lib/datumi';
+import { norma, uRadnoVrijeme } from '../lib/norme';
+import { izracunaj, mjesta, predmeti, redPrijavljenih, redUSustavu, redZaSate, ucitajPrototip, zamjene } from '../lib/prototip';
+import { OBVEZNO_KM } from '../lib/raspodjela/raspodjela';
+import { RADNJE, radnjeZa } from '../lib/sati/radnje';
+import { tkoJe } from '../lib/unos';
+import { probnaPrijavaUkljucena, VRSTE_ULOGA } from '../lib/uloga';
+import { sveUloge } from '../lib/uloge';
+import { smijeOdluciti } from '../lib/uloge-pravila';
+import { uvezeniDokumenti } from '../lib/uvoz';
+
+export const prerender = false;
+
+// Unos ide uz probnu ulogu ili uz potvrđenu ulogu prijavljenog računa.
+const probna = Astro.locals.ulogaIzvor === 'probna';
+const odabir = probnaPrijavaUkljucena() ? '/probna-prijava' : '/uloga';
+const p = await ucitajPrototip();
+const tko = p ? tkoJe(p, Astro.locals.uloga) : null;
+if (!p || !tko) return Astro.redirect(odabir);
+
+const sada = danas();
+const vrsta = tko.uloga.vrsta;
+const skola = tko.skola;
+const osoba = tko.osoba;
+const naslov = `${VRSTE_ULOGA[vrsta]}${skola ? `: ${skola.naziv}` : ''}${osoba ? `: ${osoba.punoIme}` : ''}`;
+const poZadnjem = <T extends { prijelazi: { vrijeme: string }[] }>(a: T, b: T) => (b.prijelazi.at(-1)?.vrijeme ?? '').localeCompare(a.prijelazi.at(-1)?.vrijeme ?? '');
+const kriterij = (kljuc: string) => p.tablica.kriteriji.find((k) => k.kljuc === kljuc)?.naziv ?? kljuc;
+
+// Zahtjevi za ulogu o kojima ova uloga odlučuje.
+const skoleOsobe = (oznaka: string) => p.poOznaci.get(oznaka)?.zaposlenja.map((z) => z.skola.sifra) ?? [];
+const ulogeZaOdluku = vrsta === 'povjerenstvo' || vrsta === 'ravnatelj' ? (await sveUloge()).filter((u) => u.stanje === 'ceka' && smijeOdluciti(tko.uloga, u, skoleOsobe)) : [];
+
+// Ravnatelj
+const traje = (s: (typeof p.sati)[number]) => s.stanje === 'natjecaj' && s.oglas !== null && s.oglas.rok >= sada;
+const mojiSati = skola ? p.sati.filter((s) => s.skola === skola).sort(poZadnjem) : [];
+const satiZaRadnju = mojiSati.filter((s) => radnjeZa(s.stanje, 'ravnatelj').length > 0 && !traje(s));
+const mojaMjesta = skola ? p.nastavnici.flatMap((n) => n.zaposlenja.filter((z) => z.skola === skola).map((z) => ({ n, z }))) : [];
+
+// Povjerenstvo
+const zaProvjeru = vrsta === 'povjerenstvo' ? p.sati.filter((s) => s.stanje === 'prijavljeni').map((s) => ({ s, red: redUSustavu(p, s) })) : [];
+const dokaziCekaju = vrsta === 'povjerenstvo' ? p.dokazi.filter((d) => d.stanje === 'ceka') : [];
+const prigovoriCekaju = vrsta === 'povjerenstvo' ? p.prigovori.filter((x) => x.stanje === 'zaprimljen') : [];
+const uvozNovo = vrsta === 'povjerenstvo' ? (await uvezeniDokumenti()).filter((d) => d.stanje === 'novo').length : 0;
+
+// Nastavnik i kandidat
+const ponude = osoba
+	? p.sati
+			.filter((s) => s.stanje === 'ponudeni')
+			.map((s) => ({ s, red: redUSustavu(p, s) }))
+			.map(({ s, red }) => ({ s, red, mjesto: red.findIndex((u) => u.osoba === osoba.oznaka) + 1 }))
+			.filter((x) => x.mjesto > 0)
+	: [];
+const natjecaji = osoba
+	? p.sati
+			.filter((s) => traje(s) && redZaSate(p, s).some((u) => u.osoba === osoba.oznaka))
+			.map((s) => ({ s, prijavljen: s.prijavljeni.has(osoba.oznaka), mjesto: redPrijavljenih(p, s).findIndex((u) => u.osoba === osoba.oznaka) + 1 }))
+	: [];
+const podaci = osoba ? (osoba.prijavljeniPodaci ?? { osoba: osoba.osoba, doKm: osoba.doKm, zelje: osoba.zelje, satnica: {} as Record<string, number> }) : null;
+const otvoreniPrijedlozi = osoba && vrsta === 'nastavnik' ? p.prijedlozi.filter((x) => !x.ishod.zatvoreno) : [];
+const mjestoNaListi = osoba ? izracunaj(p).mjesto.get(osoba.oznaka) : undefined;
+const mojiDokazi = osoba ? p.dokazi.filter((d) => d.nastavnik === osoba) : [];
+const pregledZamjena = osoba && vrsta === 'nastavnik' ? zamjene(p) : null;
+const zahtjev = osoba ? p.zahtjevi.find((z) => z.nastavnik === osoba) : undefined;
+const lanac = osoba ? pregledZamjena?.lanci.find((l) => l.clanovi.some((c) => c.nastavnik === osoba)) : undefined;
+const bezZamjene = osoba ? pregledZamjena?.bez.find((b) => b.zahtjev.nastavnik === osoba) : undefined;
+const zeljeMjesta = osoba?.zaposlenja.length === 1 ? mjesta(p).filter((m) => m !== osoba.zaposlenja[0].skola.mjesto) : [];
+const mojiPrigovori = osoba ? p.prigovori.filter((x) => x.nastavnik === osoba) : [];
+const rokZaPrigovor = sada <= p.ciklus.prigovori_do.slice(0, 10);
+
+// Kazalo: odjeljci ove uloge i koliko u svakom čeka radnju.
+const odjeljci: { id: string; naziv: string; ceka?: number }[] = [];
+if (ulogeZaOdluku.length > 0) odjeljci.push({ id: 'uloge', naziv: 'Zahtjevi za ulogu', ceka: ulogeZaOdluku.length });
+if (skola) odjeljci.push({ id: 'novi-sati', naziv: 'Novi sati' }, { id: 'sati-skole', naziv: 'Sati škole', ceka: satiZaRadnju.length }, { id: 'visak', naziv: 'Višak' });
+if (vrsta === 'povjerenstvo')
+	odjeljci.push(
+		{ id: 'provjera', naziv: 'Provjera sati', ceka: zaProvjeru.length },
+		{ id: 'dokazi', naziv: 'Dokazi', ceka: dokaziCekaju.length },
+		{ id: 'prigovori', naziv: 'Prigovori', ceka: prigovoriCekaju.length },
+	);
+if (osoba) {
+	odjeljci.push({ id: 'ponude', naziv: 'Ponude', ceka: ponude.filter((x) => x.mjesto === 1).length });
+	if (natjecaji.length > 0) odjeljci.push({ id: 'natjecaji', naziv: 'Natječaji', ceka: natjecaji.filter((x) => !x.prijavljen).length });
+	if (otvoreniPrijedlozi.length > 0) odjeljci.push({ id: 'glasanje', naziv: 'Glasanje', ceka: otvoreniPrijedlozi.filter((x) => !x.glasovi.has(osoba.oznaka)).length });
+	odjeljci.push({ id: 'podaci', naziv: 'Moji podaci' }, { id: 'dokazi', naziv: 'Dokazi' });
+	if (vrsta === 'nastavnik') odjeljci.push({ id: 'zamjena', naziv: 'Zamjena', ceka: lanac && !lanac.potvrdili.has(osoba.oznaka) ? 1 : 0 }, { id: 'prigovor', naziv: 'Prigovor' });
+}
+
+const radno = osoba ? uRadnoVrijeme(osoba.satnica, osoba.predmet) : 0;
+const BROJEVI = [
+	{ polje: 'stazUObrazovanju', natpis: 'Staž u obrazovanju', max: 50, jedinica: 'god.' },
+	{ polje: 'stazIzvanObrazovanja', natpis: 'Staž izvan obrazovanja', max: 50, jedinica: 'god.' },
+	{ polje: 'uzdrzavaniClanovi', natpis: 'Uzdržavani članovi', max: 15, jedinica: '' },
+	{ polje: 'prethodniViskovi', natpis: 'Prethodni viškovi', max: 10, jedinica: '' },
+] as const;
+const DA_NE = [
+	{ polje: 'samohraniIliSamac', natpis: 'Samohrani roditelj' },
+	{ polje: 'dijeteSTeskocama', natpis: 'Dijete s teškoćama' },
+	{ polje: 'invaliditet', natpis: 'Zdravstveno stanje ili invaliditet' },
+] as const;
+const NAPREDOVANJA = { nema: 'Bez zvanja', mentor: 'Mentor', savjetnik: 'Savjetnik' } as const;
+const DOKAZ = { potvrden: ['Potvrđen', 'dobro'], ceka: ['Čeka potvrdu', 'pazi'], odbijen: ['Odbijen', 'lose'] } as const;
+const PRIGOVOR = { zaprimljen: ['Zaprimljen', 'pazi'], usvojen: ['Usvojen', 'dobro'], odbijen: ['Odbijen', 'lose'], izvan_roka: ['Izvan roka', 'tiho'] } as const;
+---
+
+<Javno naslov={naslov}>
+	<Vrh naslov={naslov} fiktivno slika="unos" mrvice={[{ href: odabir, tekst: probna ? 'Probna prijava' : 'Uloga' }, { href: '/moje', tekst: 'Moj unos' }]} />
+
+	<main id="sadrzaj" class="sirina sadrzaj">
+		<Poruka />
+
+		{
+			osoba && (
+				<section class="tjedan ploca" aria-label="Pregled">
+					<dl class="tjedan-brojke">
+						<div>
+							<dt>Bodovi</dt>
+							<dd>{osoba.bodovi.ukupno}</dd>
+						</div>
+						{mjestoNaListi && (
+							<div>
+								<dt>Na listi</dt>
+								<dd>{mjestoNaListi.mjesto}.</dd>
+							</div>
+						)}
+					</dl>
+					<div class="tjedan-mjerilo">
+						<SatiMjerilo veliko sati={radno} opis={`${osoba.satnica} od ${osoba.norma} sati nastave, ${radno} od 40 sati radnog vremena`} />
+						<p>
+							<strong>
+								{osoba.satnica} od {sati(osoba.norma)} nastave
+							</strong>{' '}
+							<span class="sitno">{radno} od 40 sati radnog vremena</span>
+						</p>
+					</div>
+					<a class="tjedan-poveznica" href={`/lista/${osoba.oznaka}`}>
+						Moja stranica
+					</a>
+				</section>
+			)
+		}
+
+		<RadniOkvir odjeljci={odjeljci}>
+			<Fragment slot="dno">
+				{skola && <a href={`/sati?skola=${skola.sifra}`}>Slobodni sati škole</a>}
+				{
+					vrsta === 'povjerenstvo' && (
+						<>
+							<a href="/povjerenstvo">Povjerenstvo</a>
+							<a href="/kriteriji">Kriteriji</a>
+							<a href="/uvoz">Uvoz{uvozNovo > 0 && ` (${uvozNovo})`}</a>
+						</>
+					)
+				}
+				<a href={odabir}>Promijeni ulogu</a>
+				{
+					probna && (
+						<form method="post" action="/probna-prijava">
+							<input type="hidden" name="akcija" value="odjava" />
+							<button type="submit" class="gumb sporedni">
+								Izađi
+							</button>
+						</form>
+					)
+				}
+			</Fragment>
+
+			{
+				ulogeZaOdluku.length > 0 && (
+					<Odjeljak id="uloge" naslov="Zahtjevi za ulogu">
+						<Tablica id="uloge-tablica" naslov="Zahtjevi za ulogu" skrivenNaslov stupci={['Račun', 'Traži', 'Zatraženo', 'Odluka']}>
+							{ulogeZaOdluku.map((u) => (
+								<tr>
+									<th scope="row">{u.ime}</th>
+									<td>
+										{VRSTE_ULOGA[u.vrsta]}
+										<span class="manje">{u.vrsta === 'ravnatelj' ? (p.skole.find((s) => s.sifra === u.cilj)?.naziv ?? u.cilj) : (p.poOznaci.get(u.cilj)?.punoIme ?? u.cilj)}</span>
+									</td>
+									<td class="broj">{datum(u.zatrazeno, true)}</td>
+									<td>
+										<form method="post" action="/unos/uloga-odluka" class="radnje">
+											<input type="hidden" name="uloga" value={u.id} />
+											<button type="submit" name="odluka" value="potvrdi" class="gumb">
+												Potvrdi
+											</button>
+											<button type="submit" name="odluka" value="odbij" class="gumb sporedni">
+												Odbij
+											</button>
+										</form>
+									</td>
+								</tr>
+							))}
+						</Tablica>
+					</Odjeljak>
+				)
+			}
+
+			{
+				skola && (
+					<>
+						<Odjeljak id="novi-sati" naslov="Novi sati">
+							<form class="unos ploca" method="post" action="/unos/sati" aria-labelledby="novi-sati-naslov">
+								<div class="polja">
+									<div class="polje dvostruko">
+										<label for="predmet">Predmet</label>
+										<select id="predmet" name="predmet" required>
+											{predmeti(p).map((x) => (
+												<option value={x}>
+													{x} (puna norma {norma(x)})
+												</option>
+											))}
+										</select>
+									</div>
+									<div class="polje">
+										<label for="sati">Sati tjedno</label>
+										<div class="s-jedinicom">
+											<input type="number" id="sati" name="sati" required min="1" max="22" step="1" inputmode="numeric" />
+											<span aria-hidden="true">sati</span>
+										</div>
+									</div>
+									<fieldset class="polje dvostruko">
+										<legend>Ugovor</legend>
+										<div class="izbori">
+											<label>
+												<input type="radio" name="ugovor" value="neodredeno" checked /> Neodređeno
+											</label>
+											<label>
+												<input type="radio" name="ugovor" value="odredeno" /> Određeno
+											</label>
+										</div>
+									</fieldset>
+									<div class="polje">
+										<label for="nastalo">Nastalo</label>
+										<input type="date" id="nastalo" name="nastalo" required max={sada} value={sada} />
+									</div>
+									<div class="polje puno">
+										<label for="razlog">Razlog</label>
+										<input id="razlog" name="razlog" required minlength="3" maxlength="160" placeholder="npr. Odlazak u mirovinu" />
+									</div>
+									<div class="polje puno">
+										<label for="trajanje">Trajanje</label>
+										<input id="trajanje" name="trajanje" maxlength="120" placeholder="samo za određeno, npr. Zamjena za bolovanje" />
+									</div>
+									<fieldset class="polje puno">
+										<legend>Vrsta prijave</legend>
+										<div class="izbori">
+											<label>
+												<input type="radio" name="put" value="redovito" checked /> Redovita
+											</label>
+											<label>
+												<input type="radio" name="put" value="hitno" /> Hitan slučaj
+											</label>
+										</div>
+									</fieldset>
+								</div>
+								<div class="podnozje">
+									<button type="submit" class="gumb">
+										Prijavi sate
+									</button>
+								</div>
+							</form>
+						</Odjeljak>
+
+						<Odjeljak id="sati-skole" naslov="Sati škole">
+							{mojiSati.length === 0 ? (
+								<p class="prazan">Škola još nije prijavila slobodne sate.</p>
+							) : (
+								<Tablica id="sati-skole-tablica" naslov="Sati škole" skrivenNaslov stupci={['Sati', 'Stanje', 'Radnja']}>
+									{mojiSati.map((s) => {
+										const radnje = radnjeZa(s.stanje, 'ravnatelj');
+										return (
+											<tr>
+												<th scope="row">
+													<a href={`/sati/${s.oznaka}`}>
+														{s.predmet}, {sati(s.sati)}
+													</a>
+													<span class="manje">
+														{s.oznaka} · {s.razlog}
+													</span>
+												</th>
+												<td>
+													<Stanje stanje={s.stanje} />
+												</td>
+												<td>
+													{s.stanje === 'natjecaj' && (
+														<span class="manje">
+															{s.prijavljeni.size} {oblik(s.prijavljeni.size, 'prijava', 'prijave', 'prijava')}
+														</span>
+													)}
+													{traje(s) ? (
+														<span class="manje">Rok {datum(s.oglas!.rok, true)}</span>
+													) : radnje.length === 0 ? (
+														<span class="manje">{s.stanje === 'prijavljeni' ? 'Čeka provjeru' : s.stanje === 'ponudeni' ? 'Ponuđeno listi' : ''}</span>
+													) : (
+														<div class="radnje">
+															{radnje.map((r) => (
+																<form method="post" action="/unos/prijelaz">
+																	<input type="hidden" name="sati" value={s.oznaka} />
+																	<input type="hidden" name="radnja" value={r} />
+																	<button type="submit" class="gumb sporedni">
+																		{RADNJE[r].naziv}
+																	</button>
+																</form>
+															))}
+														</div>
+													)}
+												</td>
+											</tr>
+										);
+									})}
+								</Tablica>
+							)}
+						</Odjeljak>
+
+						<Odjeljak id="visak" naslov="Višak za idući ciklus">
+							{mojaMjesta.length === 0 ? (
+								<p class="prazan">U prototipu nema nastavnika ove škole.</p>
+							) : (
+								<>
+									<form class="unos ploca" method="post" action="/unos/visak" aria-labelledby="visak-naslov">
+										<div class="polja">
+											<div class="polje dvostruko">
+												<label for="zaposlenje">Nastavnik</label>
+												<select id="zaposlenje" name="zaposlenje" required>
+													{mojaMjesta.map(({ n, z }) => (
+														<option value={z.id}>
+															{n.punoIme} · {n.predmet} · {sati(z.sati)}
+														</option>
+													))}
+												</select>
+											</div>
+											<div class="polje">
+												<label for="visak-sati">Sati viška</label>
+												<div class="s-jedinicom">
+													<input type="number" id="visak-sati" name="sati" required min="1" max="22" step="1" inputmode="numeric" />
+													<span aria-hidden="true">sati</span>
+												</div>
+											</div>
+											<div class="polje puno">
+												<label for="visak-razlog">Razlog</label>
+												<input id="visak-razlog" name="razlog" required minlength="3" maxlength="160" placeholder="npr. Manje razrednih odjela" />
+											</div>
+										</div>
+										<div class="podnozje">
+											<button type="submit" class="gumb">
+												Prijavi višak
+											</button>
+										</div>
+									</form>
+									{mojaMjesta.some(({ z }) => z.prijavljenVisak) && (
+										<Tablica id="viskovi-tablica" naslov="Prijavljeni višak" stupci={['Nastavnik', 'Sati viška', 'Razlog', 'Radnja']}>
+											{mojaMjesta
+												.filter(({ z }) => z.prijavljenVisak)
+												.map(({ n, z }) => (
+													<tr>
+														<th scope="row">
+															<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+														</th>
+														<td class="broj">
+															{z.prijavljenVisak!.sati} od {z.sati}
+														</td>
+														<td>{z.prijavljenVisak!.razlog}</td>
+														<td>
+															<form method="post" action="/unos/visak">
+																<input type="hidden" name="zaposlenje" value={z.id} />
+																<input type="hidden" name="akcija" value="ukloni" />
+																<button type="submit" class="gumb sporedni">
+																	Ukloni
+																</button>
+															</form>
+														</td>
+													</tr>
+												))}
+										</Tablica>
+									)}
+								</>
+							)}
+						</Odjeljak>
+					</>
+				)
+			}
+
+			{
+				vrsta === 'povjerenstvo' && (
+					<>
+						<Odjeljak id="provjera" naslov="Provjera sati">
+							{zaProvjeru.length === 0 && <p class="prazan">Nema prijavljenih sati koji čekaju provjeru.</p>}
+							{zaProvjeru.map(({ s, red }) => (
+								<article class="odluka ploca">
+									<h3>
+										<a href={`/sati/${s.oznaka}`}>
+											{s.predmet}, {sati(s.sati)}
+										</a>{' '}
+										{s.kasna && <span class="oznaka lose">kasna prijava</span>}
+									</h3>
+									<p>
+										{s.skola.naziv}, {s.skola.mjesto} · {s.ugovor === 'neodredeno' ? 'neodređeno' : 'određeno'} · {s.razlog}
+									</p>
+									<p class="sitno">
+										{red.length === 0
+											? 'Nitko u sustavu ne ispunjava uvjete: potvrđeni sati idu na javni natječaj.'
+											: `Prva u redu: ${p.poOznaci.get(red[0].osoba)!.punoIme}; uvjete ispunjava ${red.length} ${oblik(red.length, 'osoba', 'osobe', 'osoba')}.`}
+									</p>
+									<div class="odluka-radnje">
+										<form method="post" action="/unos/prijelaz">
+											<input type="hidden" name="sati" value={s.oznaka} />
+											<input type="hidden" name="radnja" value="provjereno" />
+											<button type="submit" class="gumb">
+												{RADNJE.provjereno.naziv}
+											</button>
+										</form>
+										<form class="unos odbij" method="post" action="/unos/prijelaz">
+											<input type="hidden" name="sati" value={s.oznaka} />
+											<input type="hidden" name="radnja" value="odbij" />
+											<div class="polje">
+												<label for={`odbij-${s.oznaka}`}>Razlog odbijanja</label>
+												<input id={`odbij-${s.oznaka}`} name="napomena" required minlength="3" maxlength="300" />
+											</div>
+											<button type="submit" class="gumb sporedni">
+												{RADNJE.odbij.naziv}
+											</button>
+										</form>
+									</div>
+								</article>
+							))}
+						</Odjeljak>
+
+						<Odjeljak id="dokazi" naslov="Dokazi">
+							{dokaziCekaju.length === 0 && <p class="prazan">Nema dokaza koji čekaju potvrdu.</p>}
+							{dokaziCekaju.map((d) => (
+								<article class="odluka ploca">
+									<h3>
+										{kriterij(d.kriterij)}: <a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>
+									</h3>
+									<p>
+										{d.dokument} · predano {datum(d.predano, true)}
+									</p>
+									<div class="odluka-radnje">
+										<form method="post" action="/unos/dokaz-odluka">
+											<input type="hidden" name="dokaz" value={d.id} />
+											<input type="hidden" name="odluka" value="potvrdi" />
+											<button type="submit" class="gumb">
+												Potvrdi
+											</button>
+										</form>
+										<form class="unos odbij" method="post" action="/unos/dokaz-odluka">
+											<input type="hidden" name="dokaz" value={d.id} />
+											<input type="hidden" name="odluka" value="odbij" />
+											<div class="polje">
+												<label for={`dokaz-${d.id}`}>Razlog odbijanja</label>
+												<input id={`dokaz-${d.id}`} name="napomena" required minlength="3" maxlength="300" />
+											</div>
+											<button type="submit" class="gumb sporedni">
+												Odbij
+											</button>
+										</form>
+									</div>
+								</article>
+							))}
+						</Odjeljak>
+
+						<Odjeljak id="prigovori" naslov="Prigovori">
+							{prigovoriCekaju.length === 0 && <p class="prazan">Nema prigovora koji čekaju odluku.</p>}
+							{prigovoriCekaju.map((x) => (
+								<article class="odluka ploca">
+									<h3>
+										<a href={`/lista/${x.nastavnik.oznaka}`}>{x.nastavnik.punoIme}</a>, na {x.naSto === 'bodovi' ? 'bodove' : 'raspodjelu'}
+									</h3>
+									<p class="sitno">Podnesen {datumIVrijeme(x.podneseno)}</p>
+									<blockquote class="citat">{x.tekst}</blockquote>
+									<form class="unos" method="post" action="/unos/prigovor-odluka">
+										<input type="hidden" name="prigovor" value={x.id} />
+										<div class="polje">
+											<label for={`prigovor-${x.id}`}>Obrazloženje</label>
+											<textarea id={`prigovor-${x.id}`} name="obrazlozenje" required minlength="3" maxlength="600" />
+										</div>
+										<div class="podnozje">
+											<button type="submit" class="gumb" name="odluka" value="usvoji">
+												Usvoji
+											</button>
+											<button type="submit" class="gumb sporedni" name="odluka" value="odbij">
+												Odbij
+											</button>
+										</div>
+									</form>
+								</article>
+							))}
+						</Odjeljak>
+					</>
+				)
+			}
+
+			{
+				osoba && podaci && (
+					<>
+						<Odjeljak id="ponude" naslov="Ponude">
+							{ponude.length === 0 && <p class="prazan">Trenutno ti se ne nude nikakvi sati.</p>}
+							{ponude.map(({ s, red, mjesto }) => (
+								<article class="odluka ploca">
+									<h3>
+										<a href={`/sati/${s.oznaka}`}>
+											{s.predmet}, {sati(s.preostalo)}
+										</a>
+									</h3>
+									<p>
+										{s.skola.naziv}, {s.skola.mjesto} · {red[mjesto - 1].km} km cestom · {s.ugovor === 'neodredeno' ? 'neodređeno' : 'određeno'}
+									</p>
+									<p class="sitno">
+										{mjesto === 1
+											? `Prvi/a si u redu. Ako prihvatiš, dobivaš ${sati(Math.min(s.preostalo, red[0].nedostaje))}.`
+											: `U redu si ${mjesto}. od ${red.length}. Prvi/a je ${p.poOznaci.get(red[0].osoba)!.punoIme}.`}
+									</p>
+									<div class="odluka-radnje">
+										{mjesto === 1 && (
+											<form method="post" action="/unos/prijelaz">
+												<input type="hidden" name="sati" value={s.oznaka} />
+												<input type="hidden" name="radnja" value="prihvati" />
+												<button type="submit" class="gumb">
+													{RADNJE.prihvati.naziv}
+												</button>
+											</form>
+										)}
+										{red[mjesto - 1].km > OBVEZNO_KM && (
+											<form method="post" action="/unos/prijelaz">
+												<input type="hidden" name="sati" value={s.oznaka} />
+												<input type="hidden" name="radnja" value="ne-zelim" />
+												<button type="submit" class="gumb sporedni">
+													{RADNJE['ne-zelim'].naziv}
+												</button>
+											</form>
+										)}
+									</div>
+								</article>
+							))}
+						</Odjeljak>
+
+						{natjecaji.length > 0 && (
+							<Odjeljak id="natjecaji" naslov="Natječaji">
+								<Tablica id="natjecaji-tablica" naslov="Natječaji za koje ispunjavaš uvjete" skrivenNaslov stupci={['Sati', 'Škola', 'Rok', 'Prijave', 'Radnja']}>
+									{natjecaji.map(({ s, prijavljen, mjesto }) => (
+										<tr>
+											<th scope="row">
+												<a href={`/sati/${s.oznaka}`}>
+													{s.predmet}, {sati(s.preostalo)}
+												</a>
+											</th>
+											<td>
+												{s.skola.naziv}, {s.skola.mjesto}
+											</td>
+											<td class="broj">do {datum(s.oglas!.rok, true)}</td>
+											<td class="broj">{prijavljen ? `${mjesto}. od ${s.prijavljeni.size}` : s.prijavljeni.size}</td>
+											<td>
+												<form method="post" action="/unos/natjecaj">
+													<input type="hidden" name="sati" value={s.oznaka} />
+													<input type="hidden" name="akcija" value={prijavljen ? 'povuci' : 'prijavi'} />
+													<button type="submit" class:list={['gumb', { sporedni: prijavljen }]}>
+														{prijavljen ? 'Povuci prijavu' : 'Prijavi se'}
+													</button>
+												</form>
+											</td>
+										</tr>
+									))}
+								</Tablica>
+							</Odjeljak>
+						)}
+
+						{otvoreniPrijedlozi.length > 0 && (
+							<Odjeljak id="glasanje" naslov="Glasanje">
+								<div class="glasanje">
+									{otvoreniPrijedlozi.map((x) => {
+										const moj = x.glasovi.get(osoba.oznaka);
+										return (
+											<article class="odluka ploca">
+												<h3>
+													{kriterij(x.kriterij)}: {x.bodova} {oblik(x.bodova, 'bod', 'boda', 'bodova')}
+												</h3>
+												<p>{x.obrazlozenje}</p>
+												<p class="sitno">
+													Do {datum(x.zatvara, true)} · za {x.ishod.za}, protiv {x.ishod.protiv}
+													{moj && ` · tvoj glas: ${moj}`}
+												</p>
+												<form method="post" action="/unos/glas" class="odluka-radnje">
+													<input type="hidden" name="prijedlog" value={x.id} />
+													<button type="submit" name="glas" value="za" class:list={['gumb', { sporedni: moj === 'protiv' }]} aria-pressed={moj === 'za' ? 'true' : 'false'}>
+														Za
+													</button>
+													<button type="submit" name="glas" value="protiv" class:list={['gumb', { sporedni: moj !== 'protiv' }]} aria-pressed={moj === 'protiv' ? 'true' : 'false'}>
+														Protiv
+													</button>
+												</form>
+											</article>
+										);
+									})}
+								</div>
+							</Odjeljak>
+						)}
+
+						<Odjeljak id="podaci" naslov="Moji podaci">
+							{osoba.prijavljeniPodaci && (
+								<p class="napomena">
+									S podacima prijavljenima {datum(osoba.prijavljeniPodaci.prijavljeno, true)} imao/la bi <strong>{osoba.prijavljeniPodaci.bodovi.ukupno}</strong> bodova umjesto{' '}
+									{osoba.bodovi.ukupno}.
+								</p>
+							)}
+							<form class="unos ploca" method="post" action="/unos/podaci" aria-labelledby="podaci-naslov">
+								{vrsta === 'kandidat' && (
+									<fieldset class="skupina">
+										<legend>O meni</legend>
+										<div class="polja">
+											<div class="polje dvostruko">
+												<label for="kvalifikacija">Kvalifikacija</label>
+												<input id="kvalifikacija" name="kvalifikacija" maxlength="160" value={osoba.kvalifikacija ?? ''} />
+											</div>
+											<div class="polje">
+												<label for="mjesto">Mjesto stanovanja</label>
+												<select id="mjesto" name="mjesto" required>
+													{mjesta(p).map((x) => (
+														<option value={x} selected={x === osoba.mjesto}>
+															{x}
+														</option>
+													))}
+												</select>
+											</div>
+										</div>
+									</fieldset>
+								)}
+								<fieldset class="skupina">
+									<legend>Bodovi</legend>
+									<div class="polja">
+										{BROJEVI.map((b) => (
+											<div class="polje">
+												<label for={b.polje}>{b.natpis}</label>
+												{b.jedinica ? (
+													<div class="s-jedinicom">
+														<input type="number" id={b.polje} name={b.polje} required min="0" max={b.max} step="1" inputmode="numeric" value={podaci.osoba[b.polje]} />
+														<span aria-hidden="true">{b.jedinica}</span>
+													</div>
+												) : (
+													<input type="number" id={b.polje} name={b.polje} required min="0" max={b.max} step="1" inputmode="numeric" value={podaci.osoba[b.polje]} />
+												)}
+											</div>
+										))}
+									</div>
+									<fieldset class="polje">
+										<legend>Socijalni kriteriji</legend>
+										<div class="izbori">
+											{DA_NE.map((d) => (
+												<label>
+													<input type="checkbox" name={d.polje} value="da" checked={podaci.osoba[d.polje]} /> {d.natpis}
+												</label>
+											))}
+										</div>
+									</fieldset>
+									<fieldset class="polje">
+										<legend>Napredovanje</legend>
+										<div class="izbori">
+											{Object.entries(NAPREDOVANJA).map(([k, v]) => (
+												<label>
+													<input type="radio" name="napredovanje" value={k} checked={podaci.osoba.napredovanje === k} /> {v}
+												</label>
+											))}
+										</div>
+									</fieldset>
+								</fieldset>
+								<fieldset class="skupina">
+									<legend>Gdje bih radio/la</legend>
+									<div class="polja">
+										<div class="polje">
+											<label for="doKm">Doseg</label>
+											<div class="s-jedinicom">
+												<input type="number" id="doKm" name="doKm" required min="50" max="300" step="1" inputmode="numeric" value={Math.max(50, podaci.doKm)} />
+												<span aria-hidden="true">km</span>
+											</div>
+										</div>
+										{vrsta === 'nastavnik' &&
+											[1, 2, 3].map((i) => (
+												<div class="polje">
+													<label for={`zelja${i}`}>{i}. mjesto</label>
+													<select id={`zelja${i}`} name={`zelja${i}`}>
+														<option value="">bilo gdje u dosegu</option>
+														{mjesta(p).map((m) => (
+															<option value={m} selected={podaci.zelje[i - 1] === m}>
+																{m}
+															</option>
+														))}
+													</select>
+												</div>
+											))}
+									</div>
+								</fieldset>
+								{vrsta === 'nastavnik' && (
+									<fieldset class="skupina">
+										<legend>Trenutna satnica</legend>
+										<div class="polja">
+											{osoba.zaposlenja.map((z) => (
+												<div class="polje">
+													<label for={`sati-${z.id}`}>
+														{z.skola.naziv}, {z.skola.mjesto}
+													</label>
+													<div class="s-jedinicom">
+														<input
+															type="number"
+															id={`sati-${z.id}`}
+															name={`sati-${z.id}`}
+															required
+															min="0"
+															max="40"
+															step="1"
+															inputmode="numeric"
+															value={podaci.satnica[z.id] ?? z.sati}
+														/>
+														<span aria-hidden="true">sati</span>
+													</div>
+												</div>
+											))}
+										</div>
+									</fieldset>
+								)}
+								<div class="podnozje">
+									<button type="submit" class="gumb">
+										{vrsta === 'kandidat' ? 'Spremi' : 'Prijavi za idući ciklus'}
+									</button>
+								</div>
+							</form>
+						</Odjeljak>
+
+						<Odjeljak id="dokazi" naslov="Dokazi">
+							<form class="unos ploca" method="post" action="/unos/dokaz" aria-labelledby="dokazi-naslov">
+								<div class="polja">
+									<div class="polje dvostruko">
+										<label for="kriterij">Kriterij</label>
+										<select id="kriterij" name="kriterij" required>
+											{p.tablica.kriteriji
+												.filter((k) => !k.bezDokaza)
+												.map((k) => (
+													<option value={k.kljuc}>{k.naziv}</option>
+												))}
+										</select>
+									</div>
+									<div class="polje dvostruko">
+										<label for="dokument">Dokument</label>
+										<input id="dokument" name="dokument" required minlength="3" maxlength="160" placeholder="npr. Potvrda škole o radnom stažu" />
+									</div>
+								</div>
+								<div class="podnozje">
+									<button type="submit" class="gumb">
+										Predaj dokaz
+									</button>
+								</div>
+							</form>
+							{mojiDokazi.length > 0 && (
+								<Tablica id="moji-dokazi-tablica" naslov="Predani dokazi" stupci={['Kriterij', 'Dokument', 'Predano', 'Stanje']}>
+									{mojiDokazi.map((d) => (
+										<tr>
+											<th scope="row">{kriterij(d.kriterij)}</th>
+											<td>{d.dokument}</td>
+											<td class="broj">{datum(d.predano, true)}</td>
+											<td>
+												<span class:list={['oznaka', DOKAZ[d.stanje][1]]}>{DOKAZ[d.stanje][0]}</span>
+												{d.napomena && <span class="manje">{d.napomena}</span>}
+											</td>
+										</tr>
+									))}
+								</Tablica>
+							)}
+						</Odjeljak>
+
+						{vrsta === 'nastavnik' && (
+							<>
+								<Odjeljak id="zamjena" naslov="Zamjena">
+									{zahtjev?.ostvaren ? (
+										<p class="napomena">
+											Ostvareno u raspodjeli:{' '}
+											{osoba.dodjele
+												.filter((d) => d.korak === 3)
+												.map((d) => (
+													<a href={`/sati/${d.sati.oznaka}`}>
+														{d.sati.predmet}, {sati(d.koliko)}, {d.sati.skola.naziv}, {d.sati.skola.mjesto}
+													</a>
+												))}
+										</p>
+									) : osoba.zaposlenja.length !== 1 ? (
+										<p class="prazan">Zamjenu može tražiti tko radi na jednom radnom mjestu; ti radiš u {osoba.zaposlenja.length} škole.</p>
+									) : (
+										<>
+											{lanac && (
+												<div class:list={['napomena', { pazi: !lanac.vrijedi }]}>
+													<p>
+														{lanac.clanovi.length === 2 ? 'Par' : `Lanac od ${lanac.clanovi.length}`}: {lanac.clanovi.map((c) => c.nastavnik.punoIme).join(' → ')}. Potvrdilo{' '}
+														{lanac.potvrdili.size} od {lanac.clanovi.length}.
+													</p>
+													{lanac.upozorenja.map((u) => (
+														<p>{u}</p>
+													))}
+													<form method="post" action="/unos/zamjena" class="radnje">
+														<input type="hidden" name="akcija" value={lanac.potvrdili.has(osoba.oznaka) ? 'opozovi' : 'potvrdi'} />
+														<button type="submit" class:list={['gumb', { sporedni: lanac.potvrdili.has(osoba.oznaka) }]}>
+															{lanac.potvrdili.has(osoba.oznaka) ? 'Opozovi potvrdu' : 'Potvrdi zamjenu'}
+														</button>
+													</form>
+												</div>
+											)}
+											{bezZamjene && <p class="napomena pazi">Zamjene zasad nema. {bezZamjene.razlog}</p>}
+											<form class="unos ploca" method="post" action="/unos/zamjena" aria-labelledby="zamjena-naslov">
+												<input type="hidden" name="akcija" value="spremi" />
+												<div class="polja">
+													<div class="polje puno">
+														<label for="nudim">Nudiš</label>
+														<input id="nudim" readonly value={`${sati(osoba.zaposlenja[0].sati)}, ${osoba.zaposlenja[0].skola.naziv}, ${osoba.zaposlenja[0].skola.mjesto}`} />
+													</div>
+													{[0, 1, 2].map((i) => (
+														<div class="polje">
+															<label for={`zeli-${i}`}>{i + 1}. želja</label>
+															<select id={`zeli-${i}`} name="zeli" required={i === 0}>
+																{i > 0 && <option value="">nema</option>}
+																{zeljeMjesta.map((m) => (
+																	<option value={m} selected={zahtjev?.zeli[i] === m}>
+																		{m}
+																	</option>
+																))}
+															</select>
+														</div>
+													))}
+												</div>
+												<div class="podnozje">
+													<button type="submit" class="gumb">
+														{zahtjev ? 'Spremi želje' : 'Zatraži zamjenu'}
+													</button>
+													{zahtjev && (
+														<button type="submit" class="gumb sporedni" form="povuci-zamjenu">
+															Povuci zahtjev
+														</button>
+													)}
+												</div>
+											</form>
+											{zahtjev && (
+												<form id="povuci-zamjenu" method="post" action="/unos/zamjena" hidden>
+													<input type="hidden" name="akcija" value="povuci" />
+												</form>
+											)}
+										</>
+									)}
+								</Odjeljak>
+
+								<Odjeljak id="prigovor" naslov="Prigovor">
+									<form class="unos ploca" method="post" action="/unos/prigovor" aria-labelledby="prigovor-naslov">
+										<fieldset class="polje">
+											<legend>Na što</legend>
+											<div class="izbori">
+												<label>
+													<input type="radio" name="na_sto" value="bodovi" checked /> Na bodove
+												</label>
+												<label>
+													<input type="radio" name="na_sto" value="raspodjela" /> Na raspodjelu
+												</label>
+											</div>
+										</fieldset>
+										<div class="polje">
+											<label for="prigovor-tekst">Tekst</label>
+											<textarea
+												id="prigovor-tekst"
+												name="tekst"
+												required
+												minlength="10"
+												maxlength="1000"
+												placeholder={rokZaPrigovor ? undefined : `Rok od 48 sati istekao je ${datumIVrijeme(p.ciklus.prigovori_do)}, pa se prigovor bilježi kao podnesen izvan roka.`}
+											/>
+										</div>
+										<div class="podnozje">
+											<button type="submit" class="gumb">
+												Podnesi prigovor
+											</button>
+										</div>
+									</form>
+									{mojiPrigovori.map((x) => (
+										<article class="odluka">
+											<p>
+												<span class:list={['oznaka', PRIGOVOR[x.stanje][1]]}>{PRIGOVOR[x.stanje][0]}</span>{' '}
+												<span class="sitno">Podnesen {datumIVrijeme(x.podneseno)}</span>
+											</p>
+											<blockquote class="citat">{x.tekst}</blockquote>
+											{x.odluka && (
+												<p>
+													<strong>Odluka:</strong> {x.odluka}
+												</p>
+											)}
+										</article>
+									))}
+								</Odjeljak>
+							</>
+						)}
+					</>
+				)
+			}
+		</RadniOkvir>
+	</main>
+</Javno>
+
+<style>
+	/* Tjedan osobe: bodovi i satnica kao 40 crtica radnog tjedna. */
+	.tjedan {
+		display: grid;
+		gap: 16px 40px;
+		align-items: center;
+		margin: 0 0 32px;
+	}
+	@media (min-width: 760px) {
+		.tjedan {
+			grid-template-columns: auto minmax(0, 1fr) auto;
+		}
+	}
+	.tjedan-brojke {
+		display: flex;
+		gap: 32px;
+		margin: 0;
+	}
+	.tjedan-brojke dt {
+		font-size: 0.94rem;
+		color: var(--siva);
+	}
+	.tjedan-brojke dd {
+		margin: 0;
+		font-family: var(--serif);
+		font-size: 2.4rem;
+		font-weight: 600;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
+	.tjedan-mjerilo p {
+		margin: 8px 0 0;
+	}
+	.tjedan-poveznica {
+		justify-self: start;
+		font-weight: 600;
+	}
+	.radni-dno a {
+		font-weight: 600;
+	}
+	/* Radnje odluke: glavna lijevo, odbijanje s razlogom uz nju. */
+	.odluka-radnje {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		gap: 12px 16px;
+		margin-top: 16px;
+	}
+	.odluka-radnje form {
+		margin: 0;
+	}
+	.odbij {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		gap: 8px;
+		flex: 1 1 22rem;
+		max-width: 34rem;
+		margin: 0;
+	}
+	.odbij .polje {
+		flex: 1 1 14rem;
+		margin: 0;
+	}
+	.glasanje {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+		gap: 16px;
+	}
+	.glasanje .odluka {
+		margin: 0;
+	}
+	.citat {
+		max-width: 72ch;
+		margin: 8px 0;
+		padding: 0 0 0 14px;
+		border-inline-start: 3px solid var(--crta);
+	}
+</style>

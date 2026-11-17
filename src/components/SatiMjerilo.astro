@@ -1,20 +1,29 @@
 ---
 interface Props {
+	/** Sati od 40 tjednog radnog vremena. */
 	sati: number;
+	/** Od tih sati, koliko ih je novih (npr. dobivenih raspodjelom); crtaju se drugačije. */
+	novi?: number;
 	veliko?: boolean;
+	/** Opis za čitač zaslona; zadano „N od 40 sati tjedno". */
+	opis?: string;
 }
-const { sati, veliko = false } = Astro.props;
+const { sati, novi = 0, veliko = false, opis } = Astro.props;
 
 // Radni tjedan od 40 sati: pet dana po osam crtica, s razmakom između dana.
 const crtica = (i: number) => `M${i * 5 + Math.floor(i / 8) * 4 + 1.5} 0v16`;
 const sve = Array.from({ length: 40 }, (_, i) => i);
+const stari = Math.max(0, sati - novi);
+const pune = sve.slice(0, stari).map(crtica).join('');
+const nove = sve.slice(stari, sati).map(crtica).join('');
 const prazne = sve.slice(sati).map(crtica).join('');
-const pune = sve.slice(0, sati).map(crtica).join('');
 ---
 
-<svg class:list={['mjerilo', { veliko }]} viewBox="0 0 214 16" preserveAspectRatio="none" role="img" aria-label={`${sati} od 40 sati tjedno`}>
+<svg class:list={['mjerilo', { veliko }]} viewBox="0 0 214 16" preserveAspectRatio="none" role="img" aria-label={opis ?? `${sati} od 40 sati tjedno`}>
 	<path class="prazne" d={prazne}></path>
 	<path class="pune" d={pune}></path>
+	{/* Nove crtice su kraće, da se razlikuju i bez boje. */}
+	{nove && <path class="nove" d={nove.replaceAll('0v16', '4v12')} />}
 </svg>
 
 <style>
@@ -34,5 +43,8 @@ const pune = sve.slice(0, sati).map(crtica).join('');
 	}
 	.pune {
 		stroke: var(--more);
+	}
+	.nove {
+		stroke: var(--zeleno);
 	}
 </style>

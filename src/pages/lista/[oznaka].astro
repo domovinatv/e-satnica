@@ -1,0 +1,328 @@
+---
+import SatiMjerilo from '../../components/SatiMjerilo.astro';
+import Stanje from '../../components/Stanje.astro';
+import Tablica from '../../components/Tablica.astro';
+import Vrh from '../../components/Vrh.astro';
+import Javno from '../../layouts/Javno.astro';
+import { bodovi } from '../../lib/bodovanje/bodovi';
+import { SDZ_2025, type Kriterij } from '../../lib/bodovanje/kriteriji';
+import { danas, datum, datumIVrijeme, sati } from '../../lib/datumi';
+import { uRadnoVrijeme } from '../../lib/norme';
+import { dokazZa, izracunaj, KORACI, RAZLOZI, redZaSate, ucitajPrototip, zamjene } from '../../lib/prototip';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const n = p?.poOznaci.get(Astro.params.oznaka ?? '');
+if (!p || !n) Astro.response.status = 404;
+
+const kandidat = n?.vrsta === 'kandidat';
+const izracun = p && n ? izracunaj(p) : null;
+const mjesto = n ? izracun?.mjesto.get(n.oznaka) : undefined;
+const bez = n ? izracun?.rezultat.bezSati.find((b) => b.osoba === n.oznaka) : undefined;
+const sdz = n ? bodovi(n.osoba, SDZ_2025).ukupno : 0;
+
+const podatak = (k: Kriterij): string => {
+	const o = n!.osoba;
+	const pravilo = k.pravilo;
+	if (pravilo.vrsta === 'po_jedinici') return String(o[pravilo.polje]);
+	if (pravilo.vrsta === 'da_ne') return o[pravilo.polje] ? 'da' : 'ne';
+	return o.napredovanje === 'nema' ? 'ne' : o.napredovanje;
+};
+const DOKAZ = { potvrden: ['Potvrđen', 'dobro'], ceka: ['Čeka potvrdu', 'pazi'], odbijen: ['Odbijen', 'lose'] } as const;
+const PRIGOVOR = {
+	zaprimljen: ['Zaprimljen', 'pazi'],
+	usvojen: ['Usvojen', 'dobro'],
+	odbijen: ['Odbijen', 'lose'],
+	izvan_roka: ['Izvan roka', 'tiho'],
+} as const;
+
+// Sati koji su još otvoreni, a osoba je za njih u redu prednosti.
+const sada = danas();
+const uDosegu =
+	p && n
+		? p.sati
+				.filter((s) => s.stanje === 'ponudeni' || (s.stanje === 'natjecaj' && s.oglas !== null && s.oglas.rok >= sada))
+				.map((s) => ({ s, red: redZaSate(p, s) }))
+				.map(({ s, red }) => ({ s, mjesto: red.findIndex((u) => u.osoba === n.oznaka) + 1, od: red.length, prijava: s.stanje === 'natjecaj' ? s.prijavljeni.has(n.oznaka) : null }))
+				.filter((x) => x.mjesto > 0)
+		: [];
+
+const pregled = p ? zamjene(p) : null;
+const zahtjev = p && n ? p.zahtjevi.find((z) => z.nastavnik === n) : undefined;
+const lanac = n ? pregled?.lanci.find((l) => l.clanovi.some((c) => c.nastavnik === n)) : undefined;
+const bezZamjene = n ? pregled?.bez.find((b) => b.zahtjev.nastavnik === n) : undefined;
+const mojiPrigovori = p && n ? p.prigovori.filter((x) => x.nastavnik === n) : [];
+const radno = n ? uRadnoVrijeme(n.satnica, n.predmet) : 0;
+const radnoPrije = n ? uRadnoVrijeme(n.zadrzano, n.predmet) : 0;
+---
+
+<Javno naslov={n ? n.punoIme : 'Osoba nije pronađena'}>
+	{
+		p && n ? (
+			<>
+				<Vrh
+					naslov={n.punoIme}
+					fiktivno
+					slika="osoba"
+					mrvice={[
+						kandidat ? { href: '/lista?skupina=kandidati', tekst: 'Kandidati' } : { href: '/lista', tekst: 'Lista' },
+						{ href: `/lista/${n.oznaka}`, tekst: n.punoIme },
+					]}
+				>
+					<p>
+						{n.predmet} · {n.mjesto} · {n.oznaka} · {kandidat ? 'kandidat izvana' : 'zaposlen u sustavu'}
+					</p>
+				</Vrh>
+
+				<main id="sadrzaj" class="sirina sadrzaj">
+					{n.situacija && <p>{n.situacija}</p>}
+					<dl class="brojke">
+						<div>
+							<dt>Bodovi</dt>
+							<dd>{n.bodovi.ukupno}</dd>
+						</div>
+						{n.privremeno && (n.privremeno.bodovi !== n.bodovi.ukupno || n.privremeno.mjesto !== mjesto?.mjesto) && (
+							<div>
+								<dt>Privremena lista</dt>
+								<dd>
+									{n.privremeno.bodovi} <span class="od">bodova, {n.privremeno.mjesto}. mjesto</span>
+								</dd>
+							</div>
+						)}
+						{mjesto && (
+							<div>
+								<dt>Mjesto</dt>
+								<dd>
+									{mjesto.mjesto}. <span class="od">od {izracun!.rezultat.lista.length}</span>
+								</dd>
+							</div>
+						)}
+						<div>
+							<dt>Satnica</dt>
+							<dd>
+								{n.satnica} <span class="od">od {sati(n.norma)}</span>
+							</dd>
+						</div>
+						<div>
+							<dt>Doseg</dt>
+							<dd>
+								{Math.max(50, n.doKm)} <span class="od">km</span>
+							</dd>
+						</div>
+					</dl>
+					{n.zelje.length > 0 && <p>Želje: {n.zelje.join(', ')}</p>}
+					{mjesto?.zaRucnuProvjeru && (
+						<p class="napomena pazi">Izjednačenje po bodovima: ručna provjera.</p>
+					)}
+
+					<h2 id="bodovi">Bodovi</h2>
+					<p>
+						Po županijskoj tablici: <strong>{sdz}</strong>.
+					</p>
+					<Tablica id="bodovi-naslov" naslov={`Bodovi po kriterijima, ukupno ${n.bodovi.ukupno}`} stupci={['Kriterij', 'Podatak', 'Bodovi', 'Dokaz']}>
+						{p.tablica.kriteriji.map((k) => {
+							const dokaz = dokazZa(p, n, k.kljuc);
+							const stavka = n.bodovi.stavke.find((s) => s.kljuc === k.kljuc);
+							return (
+								<tr>
+									<th scope="row">{k.naziv}</th>
+									<td class="broj">{podatak(k)}</td>
+									<td class="broj">
+										{stavka?.bodova ?? 0}
+										{stavka?.bezDokaza && <span class="manje">bez dokaza {stavka.bezDokaza}</span>}
+									</td>
+									<td>
+										{!dokaz && stavka?.bezDokaza && <span class="oznaka lose">Nema dokaza</span>}
+										{dokaz && (
+											<>
+												<span class:list={['oznaka', DOKAZ[dokaz.stanje][1]]}>{DOKAZ[dokaz.stanje][0]}</span>
+												<span class="manje">
+													{dokaz.dokument}
+													{dokaz.napomena && `. ${dokaz.napomena}`}
+												</span>
+											</>
+										)}
+									</td>
+								</tr>
+							);
+						})}
+					</Tablica>
+					{n.prijavljeniPodaci && (
+						<p class="napomena">
+							Prijavljeno za idući ciklus: <strong>{n.prijavljeniPodaci.bodovi.ukupno}</strong> bodova ({datum(n.prijavljeniPodaci.prijavljeno, true)})
+						</p>
+					)}
+
+					<h2 id="satnica">Satnica</h2>
+					<SatiMjerilo veliko sati={radno} novi={radno - radnoPrije} opis={`${n.satnica} od ${n.norma} sati nastave tjedno`} />
+					<p>
+						<strong>{n.satnica} od {sati(n.norma)} nastave tjedno</strong> ({radno} od 40 sati radnog vremena){n.satnica > n.zadrzano && `, od toga ${sati(n.satnica - n.zadrzano)} kroz sustav`}
+					</p>
+
+					{n.zaposlenja.length > 0 && (
+						<Tablica id="zaposlenja-naslov" naslov="Prije raspodjele" stupci={['Škola', 'Sati', 'Višak', 'Ugovor']}>
+							{n.zaposlenja.map((z) => (
+								<tr>
+									<th scope="row">
+										{z.skola.naziv}
+										<span class="manje">{z.skola.mjesto}</span>
+									</th>
+									<td class="broj">
+										{z.sati}
+										{z.napusteno && <span class="manje">napušteno zamjenom</span>}
+									</td>
+									<td>
+										{z.visak > 0 && (
+											<>
+												<span class="broj">{z.visak}</span>
+												<span class="manje">{z.razlogViska}</span>
+											</>
+										)}
+									</td>
+									<td>{z.ugovor === 'neodredeno' ? 'Neodređeno' : 'Određeno'}</td>
+								</tr>
+							))}
+						</Tablica>
+					)}
+
+					{n.dodjele.length > 0 && (
+						<Tablica id="dodjele-naslov" naslov="Dobiveno kroz sustav" stupci={['Škola', 'Sati', 'Kako', 'Udaljenost', 'Slobodni sati']}>
+							{n.dodjele.map((d) => (
+								<tr>
+									<th scope="row">
+										{d.sati.skola.naziv}
+										<span class="manje">{d.sati.skola.mjesto}</span>
+									</th>
+									<td class="broj">{d.koliko}</td>
+									<td>
+										{KORACI[d.korak]}
+										{d.napusta && <span class="manje">umjesto {d.napusta.skola.naziv}</span>}
+									</td>
+									<td class="broj">{d.km} km</td>
+									<td>
+										<a href={`/sati/${d.sati.oznaka}`}>{d.sati.oznaka}</a>
+									</td>
+								</tr>
+							))}
+						</Tablica>
+					)}
+
+					{bez && (
+						<p class="napomena pazi">
+							{bez.korak === 1 ? `U raspodjeli je ostalo nezbrinuto ${sati(bez.nedostaje)} viška.` : `Nakon raspodjele do pune norme fali ${sati(bez.nedostaje)}.`}{' '}
+							{RAZLOZI[bez.razlog]}
+						</p>
+					)}
+
+					{kandidat && n.kvalifikacija && (
+						<dl class="podaci">
+							<div>
+								<dt>Kvalifikacija</dt>
+								<dd>{n.kvalifikacija}</dd>
+							</div>
+						</dl>
+					)}
+
+					{uDosegu.length > 0 && (
+						<>
+							<h2 id="u-dosegu">Sati u dosegu</h2>
+							<Tablica id="dosezi-naslov" naslov="Sati za koje je osoba u redu prednosti" skrivenNaslov stupci={['Sati', 'Škola', 'Stanje', 'Red']}>
+								{uDosegu.map(({ s, mjesto: m, od, prijava }) => (
+									<tr>
+										<th scope="row">
+											<a href={`/sati/${s.oznaka}`}>
+												{s.predmet}, {sati(s.sati)}
+											</a>
+										</th>
+										<td>
+											{s.skola.naziv}, {s.skola.mjesto}
+										</td>
+										<td>
+											<Stanje stanje={s.stanje} />
+										</td>
+										<td class="broj">
+											{m}. od {od}
+											{prijava !== null && <span class="manje">{prijava ? 'prijava' : 'bez prijave'}</span>}
+										</td>
+									</tr>
+								))}
+							</Tablica>
+						</>
+					)}
+
+					{zahtjev && (
+						<>
+							<h2 id="zamjena">Zamjena</h2>
+							{zahtjev.ostvaren && <p class="napomena">Ostvareno u raspodjeli {p.ciklus.skolska_godina}.</p>}
+							<p>
+								Nudi {sati(zahtjev.zaposlenje.sati)} u školi {zahtjev.zaposlenje.skola.naziv} ({zahtjev.zaposlenje.skola.mjesto}), a
+								želi u: {zahtjev.zeli.join(', ')}. Zahtjev je podnesen {datum(zahtjev.podneseno, true)}
+							</p>
+							{lanac && (
+								<p class:list={['napomena', { pazi: !lanac.vrijedi }]}>
+									Sustav je našao {lanac.clanovi.length === 2 ? 'par' : `lanac od ${lanac.clanovi.length} osobe`}:{' '}
+									{lanac.clanovi.map((c) => c.nastavnik.punoIme).join(' → ')}.{' '}
+									{lanac.vrijedi ? 'Svi su potvrdili, pa zamjena vrijedi.' : `Potvrdilo je ${lanac.potvrdili.size} od ${lanac.clanovi.length}; zamjena vrijedi tek kad potvrde svi.`}{' '}
+									<a href="/zamjene">Zamjene</a>
+								</p>
+							)}
+							{bezZamjene && (
+								<p class="napomena pazi">
+									Zamjene zasad nema. {bezZamjene.razlog} <a href="/zamjene">Zamjene</a>
+								</p>
+							)}
+						</>
+					)}
+
+					{mojiPrigovori.length > 0 && (
+						<>
+							<h2 id="prigovori">Prigovori</h2>
+							{mojiPrigovori.map((x) => (
+								<article class="kartica prigovor">
+									<p>
+										<span class:list={['oznaka', PRIGOVOR[x.stanje][1]]}>{PRIGOVOR[x.stanje][0]}</span>{' '}
+										<span class="sitno">
+											Na {x.naSto === 'bodovi' ? 'bodove' : 'raspodjelu'}, podnesen {datumIVrijeme(x.podneseno)}
+										</span>
+									</p>
+									<p>{x.tekst}</p>
+									{x.odluka && (
+										<p>
+											<strong>Odluka:</strong> {x.odluka}
+										</p>
+									)}
+								</article>
+							))}
+							<p>
+								<a href="/povjerenstvo#prigovori">Prigovori</a>
+							</p>
+						</>
+					)}
+				</main>
+			</>
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+				<div class="prazno">
+					<h1 class="prazno-naslov">Te osobe nema na listi.</h1>
+					<p>
+						Možda je oznaka pogrešna. <a href="/lista">Lista</a>
+					</p>
+				</div>
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.od {
+		font-family: var(--sans);
+		font-size: 1rem;
+		font-weight: 400;
+		color: var(--siva);
+	}
+	.prigovor {
+		max-width: 760px;
+		margin: 12px 0;
+	}
+</style>

@@ -1,0 +1,60 @@
+/* Boje i pisma zajednički svim stranicama. Tamna tema prati postavku sustava. */
+:root {
+	--papir: #ffffff;
+	--nebo: #eaf1fb;
+	--ploca: #f6f9fe;
+	--crta: #cfdcee;
+	--more: #0e3f8c;
+	--tinta: #0f2342;
+	--siva: #4f5f78;
+	--crveno: #b4261a;
+	--zeleno: #17663a;
+	--zuto: #7a5200;
+	--zuto-podloga: #fdf3d7;
+	--sunce: #f2b632;
+	--na-moru: #ffffff;
+	--na-moru-siva: #cfe0f7;
+	--pozadina-mora: #0e3f8c;
+	--serif: 'Literata Variable', Georgia, serif;
+	--sans: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+	color-scheme: light dark;
+	accent-color: var(--more);
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--papir: #0c1b33;
+		--nebo: #15294a;
+		--ploca: #10233f;
+		--crta: #2b4570;
+		--more: #93b9ff;
+		--tinta: #e9f0fb;
+		--siva: #a6b7d0;
+		--crveno: #ff9d85;
+		--zeleno: #7fd6a2;
+		--zuto: #f2cf7a;
+		--zuto-podloga: #3a2f10;
+		--sunce: #f6c453;
+		--pozadina-mora: #12305f;
+	}
+}
+
+/* Blagi prijelaz između stranica; preglednici bez podrške samo otvore stranicu. */
+@media (prefers-reduced-motion: no-preference) {
+	@view-transition {
+		navigation: auto;
+	}
+}
+
+/* Skriveno od oka, vidljivo čitaču zaslona. */
+.vizualno-skriveno:where(:not(:focus-within, :active)) {
+	position: absolute !important;
+	clip-path: inset(50%) !important;
+	overflow: hidden !important;
+	width: 1px !important;
+	height: 1px !important;
+	margin: -1px !important;
+	padding: 0 !important;
+	border: 0 !important;
+	white-space: nowrap !important;
+}

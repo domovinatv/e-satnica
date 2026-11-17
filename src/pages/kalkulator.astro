@@ -1,0 +1,307 @@
+---
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { bodovi, opisPravila } from '../lib/bodovanje/bodovi';
+import { SDZ_2025, V1, type Osoba } from '../lib/bodovanje/kriteriji';
+import { oblik } from '../lib/datumi';
+
+export const prerender = false;
+
+// Brojčana polja obrasca: ime polja u Osobi, natpis, tekst u praznom polju i najveća dopuštena vrijednost.
+const BROJEVI = [
+	{ polje: 'stazUObrazovanju', natpis: 'Staž u obrazovanju', primjer: 'navršene godine', max: 50 },
+	{ polje: 'stazIzvanObrazovanja', natpis: 'Staž izvan obrazovanja', primjer: 'navršene godine', max: 50 },
+	{ polje: 'dob', natpis: 'Godine života', primjer: 'navršene godine', max: 75 },
+	{ polje: 'uzdrzavaniClanovi', natpis: 'Uzdržavani članovi obitelji', primjer: 'broj članova', max: 15 },
+	{ polje: 'prethodniViskovi', natpis: 'Prethodna proglašenja viškom', primjer: 'koliko puta', max: 10 },
+] as const;
+const DA_NE = [
+	{ polje: 'samohraniIliSamac', natpis: 'Samohrani roditelj' },
+	{ polje: 'dijeteSTeskocama', natpis: 'Dijete s teškoćama' },
+	{ polje: 'invaliditet', natpis: 'Vlastito zdravstveno stanje ili invaliditet' },
+] as const;
+const NAPREDOVANJA = { nema: 'Bez zvanja', mentor: 'Mentor', savjetnik: 'Savjetnik' } as const;
+
+let osoba: Osoba | null = null;
+let greska = '';
+// Vrijednosti za ponovni prikaz obrasca; ništa se ne sprema.
+const upisano: Record<string, string> = {};
+
+if (Astro.request.method === 'POST') {
+	const podaci = await Astro.request.formData();
+	const brojevi: Record<string, number> = {};
+	for (const b of BROJEVI) {
+		const tekst = String(podaci.get(b.polje) ?? '').trim();
+		upisano[b.polje] = tekst.slice(0, 3);
+		const broj = Number(tekst);
+		if (tekst === '' || !Number.isInteger(broj) || broj < 0 || broj > b.max) {
+			greska ||= `${b.natpis}: upiši cijeli broj od 0 do ${b.max}.`;
+		}
+		brojevi[b.polje] = broj;
+	}
+	for (const d of DA_NE) upisano[d.polje] = podaci.get(d.polje) === 'da' ? 'da' : '';
+	const napredovanje = String(podaci.get('napredovanje') ?? 'nema');
+	upisano.napredovanje = napredovanje in NAPREDOVANJA ? napredovanje : 'nema';
+	if (!greska) {
+		osoba = {
+			stazUObrazovanju: brojevi.stazUObrazovanju,
+			stazIzvanObrazovanja: brojevi.stazIzvanObrazovanja,
+			dob: brojevi.dob,
+			uzdrzavaniClanovi: brojevi.uzdrzavaniClanovi,
+			prethodniViskovi: brojevi.prethodniViskovi,
+			samohraniIliSamac: upisano.samohraniIliSamac === 'da',
+			dijeteSTeskocama: upisano.dijeteSTeskocama === 'da',
+			invaliditet: upisano.invaliditet === 'da',
+			napredovanje: upisano.napredovanje as Osoba['napredovanje'],
+		};
+	}
+}
+
+const nase = osoba ? bodovi(osoba, V1) : null;
+const zupanija = osoba ? bodovi(osoba, SDZ_2025) : null;
+const zupanijaPoKljucu = new Map(zupanija?.stavke.map((s) => [s.kljuc, s.bodova]));
+const boda = (n: number) => `${n} ${oblik(n, 'bod', 'boda', 'bodova')}`;
+---
+
+<Javno naslov="Moji bodovi">
+	<Vrh naslov="Moji bodovi" slika="bodovi" />
+
+	<main id="sadrzaj" class="sirina sadrzaj">
+		{
+			nase && zupanija && (
+				<section aria-labelledby="rezultat">
+					<h2 id="rezultat" tabindex="-1">
+						Po nacrtu e-satnice: {boda(nase.ukupno)}
+					</h2>
+					<p>
+						Po županijskoj tablici: <strong>{boda(zupanija.ukupno)}</strong>.
+					</p>
+					<Tablica id="rezultat-naslov" naslov="Bodovi po kriterijima" skrivenNaslov stupci={['Kriterij', 'Pravilo', 'Nacrt e-satnice', 'Županija danas']}>
+						{V1.kriteriji.map((k) => (
+							<tr>
+								<th scope="row">{k.naziv}</th>
+								<td>{opisPravila(k)}</td>
+								<td class="broj">{nase.stavke.find((s) => s.kljuc === k.kljuc)?.bodova ?? 0}</td>
+								<td class="broj">{zupanijaPoKljucu.get(k.kljuc) ?? 'ne boduje se'}</td>
+							</tr>
+						))}
+						<tr>
+							<th scope="row">Ukupno</th>
+							<td />
+							<td class="broj">
+								<strong>{nase.ukupno}</strong>
+							</td>
+							<td class="broj">
+								<strong>{zupanija.ukupno}</strong>
+							</td>
+						</tr>
+					</Tablica>
+					<p class="sitno">
+						<a href="/kriteriji">Kriteriji</a> ({V1.verzija})
+					</p>
+				</section>
+			)
+		}
+
+		<h2 id="obrazac-naslov">Podaci</h2>
+
+		<form class="obrazac" method="post" action="/kalkulator#rezultat" aria-labelledby="obrazac-naslov">
+			{
+				greska && (
+					<p class="greska" role="alert">
+						{greska}
+					</p>
+				)
+			}
+			<fieldset>
+				<legend>Staž, dob i obitelj</legend>
+				{
+					BROJEVI.map((b) => (
+						<div class="polje">
+							<label for={b.polje}>{b.natpis}</label>
+							<input
+								type="number"
+								id={b.polje}
+								name={b.polje}
+								min="0"
+								max={b.max}
+								step="1"
+								inputmode="numeric"
+								required
+								value={upisano[b.polje] ?? ''}
+								placeholder={b.primjer}
+								data-error={`${b.polje}-greska`}
+							/>
+							<div class="poruka" id={`${b.polje}-greska`}>
+								Upiši cijeli broj od 0 do {b.max}.
+							</div>
+						</div>
+					))
+				}
+			</fieldset>
+
+			<fieldset>
+				<legend>Socijalni kriteriji</legend>
+				{
+					DA_NE.map((d) => (
+						<div class="kucica">
+							<input type="checkbox" id={d.polje} name={d.polje} value="da" checked={upisano[d.polje] === 'da'} />
+							<label for={d.polje}>{d.natpis}</label>
+						</div>
+					))
+				}
+			</fieldset>
+
+			<fieldset>
+				<legend>Napredovanje</legend>
+				{
+					Object.entries(NAPREDOVANJA).map(([k, v]) => (
+						<div class="kucica">
+							<input type="radio" id={`napredovanje-${k}`} name="napredovanje" value={k} checked={(upisano.napredovanje ?? 'nema') === k} />
+							<label for={`napredovanje-${k}`}>{v}</label>
+						</div>
+					))
+				}
+			</fieldset>
+
+			<button type="submit" class="gumb">Izračunaj</button>
+			<p class="sitno">Upisano se ne sprema.</p>
+		</form>
+	</main>
+</Javno>
+
+<script>
+	// Greška se pokazuje tek kad korisnik završi s poljem (:user-invalid). Čitaču zaslona
+	// to treba reći posebno: aria-invalid prati vidljivo stanje, a poruka se veže uz
+	// polje samo dok je prikazana.
+	const poveziPoruku = (polje: HTMLElement, prikazana: boolean) => {
+		const id = polje.dataset.error;
+		if (!id) return;
+		const idovi = (polje.getAttribute('aria-describedby') ?? '').split(/\s+/).filter((x) => x && x !== id);
+		if (prikazana) idovi.push(id);
+		if (idovi.length) polje.setAttribute('aria-describedby', idovi.join(' '));
+		else polje.removeAttribute('aria-describedby');
+	};
+
+	// Jedno pristojno živo područje za cijelu stranicu najavljuje grešku nakon izlaska iz polja.
+	const najava = document.createElement('div');
+	najava.setAttribute('aria-live', 'polite');
+	najava.classList.add('vizualno-skriveno');
+	document.body.appendChild(najava);
+	let odgoda: number | undefined;
+	const najavljena = new WeakSet<Element>();
+
+	const uskladi = (cilj: EventTarget | null, najavi = false) => {
+		if (!(cilj instanceof HTMLInputElement) || !cilj.dataset.error) return;
+		const neispravno = cilj.matches(':user-invalid');
+		cilj.setAttribute('aria-invalid', String(neispravno));
+		poveziPoruku(cilj, neispravno);
+		if (!neispravno) {
+			najavljena.delete(cilj);
+			return;
+		}
+		if (najavi && !najavljena.has(cilj)) {
+			najavljena.add(cilj);
+			const natpis = cilj.labels?.[0]?.textContent?.trim() ?? '';
+			const poruka = document.getElementById(cilj.dataset.error)?.textContent?.trim() ?? '';
+			clearTimeout(odgoda);
+			najava.textContent = '';
+			// Pričekaj da čitač najavi polje na koje je fokus prešao.
+			odgoda = window.setTimeout(() => (najava.textContent = `${natpis}: ${poruka}`), 500);
+		}
+	};
+
+	document.querySelectorAll('.obrazac input[data-error]').forEach((polje) => uskladi(polje));
+	document.addEventListener('blur', (e) => uskladi(e.target, true), true);
+	document.addEventListener('input', (e) => uskladi(e.target));
+	// Neuspjelo slanje označi i polja koja korisnik nije dirao; fokus ide na prvo, pa se ona ne najavljuju.
+	document.addEventListener(
+		'invalid',
+		(e) => {
+			if (e.target instanceof Element) najavljena.add(e.target);
+			uskladi(e.target);
+		},
+		true,
+	);
+
+	// Nakon izračuna fokus ide na rezultat, da ga čitač zaslona pročita.
+	if (location.hash === '#rezultat') document.getElementById('rezultat')?.focus();
+</script>
+
+<style>
+	.obrazac {
+		max-width: 520px;
+	}
+	fieldset {
+		margin: 0 0 24px;
+		padding: 0;
+		border: 0;
+	}
+	legend {
+		margin-bottom: 8px;
+		padding: 0;
+		font-family: var(--serif);
+		font-size: 1.25rem;
+		font-weight: 600;
+	}
+	.polje {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		margin-block-end: 18px;
+	}
+	.polje label {
+		font-weight: 600;
+	}
+	.polje input::placeholder {
+		color: var(--siva);
+		opacity: 1;
+	}
+	.polje input {
+		max-width: 200px;
+		min-height: 48px;
+		padding: 0 12px;
+		font: inherit;
+		font-size: max(1rem, 1em);
+		color: var(--tinta);
+		background: var(--papir);
+		border: 1px solid var(--siva);
+		border-radius: 6px;
+	}
+	/* Greška: rub, podloga i tekst poruke, ne samo boja. */
+	.polje input:user-invalid {
+		border: 2px solid var(--crveno);
+		background: var(--zuto-podloga);
+	}
+	.poruka {
+		display: none;
+		font-size: 0.94rem;
+		font-weight: 600;
+		color: var(--crveno);
+	}
+	.polje input:user-invalid + .poruka {
+		display: block;
+	}
+	.kucica {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 48px;
+	}
+	.kucica input {
+		width: 22px;
+		height: 22px;
+		margin: 0;
+	}
+	.greska {
+		padding: 10px 14px;
+		font-weight: 600;
+		color: var(--crveno);
+		border: 2px solid var(--crveno);
+		border-radius: 6px;
+	}
+	h2[tabindex='-1']:focus {
+		outline: none;
+	}
+</style>

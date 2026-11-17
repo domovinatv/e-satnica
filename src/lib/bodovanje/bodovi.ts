@@ -7,7 +7,12 @@ export interface Stavka {
 	kljuc: string;
 	naziv: string;
 	bodova: number;
+	/** Bodovi koje bi kriterij nosio, ali nema potvrđenog dokaza; zato se ne broje. */
+	bezDokaza?: number;
 }
+
+/** Ima li osoba potvrđen dokaz za kriterij. Bez ove funkcije svi se kriteriji broje. */
+export type Dokazano = (kljuc: string) => boolean;
 
 export interface Rezultat {
 	verzija: string;
@@ -32,8 +37,12 @@ function bodoviKriterija(k: Kriterij, o: Osoba): number {
 	}
 }
 
-export function bodovi(o: Osoba, t: BodovnaTablica): Rezultat {
-	const stavke = t.kriteriji.map((k) => ({ kljuc: k.kljuc, naziv: k.naziv, bodova: bodoviKriterija(k, o) }));
+export function bodovi(o: Osoba, t: BodovnaTablica, dokazano?: Dokazano): Rezultat {
+	const stavke = t.kriteriji.map((k): Stavka => {
+		const b = bodoviKriterija(k, o);
+		if (b > 0 && dokazano && !k.bezDokaza && !dokazano(k.kljuc)) return { kljuc: k.kljuc, naziv: k.naziv, bodova: 0, bezDokaza: b };
+		return { kljuc: k.kljuc, naziv: k.naziv, bodova: b };
+	});
 	return { verzija: t.verzija, ukupno: stavke.reduce((s, x) => s + x.bodova, 0), stavke };
 }
 
@@ -41,6 +50,8 @@ export interface Kandidat {
 	/** Stabilna oznaka osobe, npr. interni ID. Služi samo kao zadnja, deterministička razlika. */
 	id: string;
 	osoba: Osoba;
+	/** Potvrđeni dokazi; bez njih se kriteriji koji traže dokaz ne broje. */
+	dokazano?: Dokazano;
 }
 
 export interface MjestoNaListi extends Kandidat {
@@ -65,7 +76,7 @@ export function poredak(kandidati: Kandidat[], t: BodovnaTablica): MjestoNaListi
 		}
 		return 0;
 	};
-	const s: S[] = kandidati.map((k) => ({ ...k, rezultat: bodovi(k.osoba, t) }));
+	const s: S[] = kandidati.map((k) => ({ ...k, rezultat: bodovi(k.osoba, t, k.dokazano) }));
 	s.sort((a, b) => prema(a, b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 	return s.map((k, i) => ({
 		...k,

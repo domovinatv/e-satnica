@@ -1,0 +1,215 @@
+---
+// Bodovna tablica ciklusa, prijedlozi izmjena i glasanje zaposlenih. Izglasane izmjene
+// ne diraju zaključanu tablicu, nego daju nacrt za idući ciklus; ispod je kako bi se
+// s njim promijenila lista.
+import NemaBaze from '../components/NemaBaze.astro';
+import Poruka from '../components/Poruka.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { opisPravila, poredak } from '../lib/bodovanje/bodovi';
+import { mozeSeMijenjati } from '../lib/bodovanje/glasanje';
+import { danas, datum, oblik, pomakni } from '../lib/datumi';
+import { iducaTablica, ucitajPrototip } from '../lib/prototip';
+import { tkoJe } from '../lib/unos';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const tko = p ? tkoJe(p, Astro.locals.uloga) : null;
+const sada = danas();
+const glasa = tko?.uloga.vrsta === 'nastavnik' && tko.osoba?.vrsta === 'zaposlen' ? tko.osoba : undefined;
+const povjerenstvo = tko?.uloga.vrsta === 'povjerenstvo';
+
+const iduca = p ? iducaTablica(p) : null;
+const izmijenjeni = p && iduca ? p.tablica.kriteriji.filter((k, i) => opisPravila(k) !== opisPravila(iduca.kriteriji[i])) : [];
+const naziv = (kljuc: string) => p?.tablica.kriteriji.find((k) => k.kljuc === kljuc)?.naziv ?? kljuc;
+
+// Lista s nacrtom: isti ljudi i isti dokazi, samo druga tablica.
+const naListi = p ? p.nastavnici.filter((n) => n.naListi) : [];
+const sada1 = p ? poredak(naListi.map((n) => ({ id: n.oznaka, osoba: n.osoba, dokazano: n.dokazano })), p.tablica) : [];
+const sada2 = iduca ? poredak(naListi.map((n) => ({ id: n.oznaka, osoba: n.osoba, dokazano: n.dokazano })), iduca) : [];
+const promjene = sada1
+	.map((m) => ({ m, nova: sada2.find((x) => x.id === m.id)!, n: p!.poOznaci.get(m.id)! }))
+	.filter(({ m, nova }) => m.rezultat.ukupno !== nova.rezultat.ukupno || m.mjesto !== nova.mjesto)
+	.sort((a, b) => a.nova.mjesto - b.nova.mjesto);
+const prijedlozi = p?.prijedlozi ?? [];
+---
+
+<Javno naslov="Kriteriji">
+	<Vrh naslov="Kriteriji" fiktivno slika="bodovi" />
+
+	{
+		!p || !iduca ? (
+			<NemaBaze />
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+				<Poruka />
+				<Tablica
+					id="tablica-naslov"
+					naslov={`Tablica ${p.tablica.verzija}, ${p.ciklus.skolska_godina}`}
+					stupci={['Kriterij', 'Bodovi', 'Dokaz', izmijenjeni.length > 0 ? iduca.verzija : '']}
+				>
+					{p.tablica.kriteriji.map((k, i) => {
+						const nova = opisPravila(iduca.kriteriji[i]);
+						return (
+							<tr>
+								<th scope="row">{k.naziv}</th>
+								<td>{opisPravila(k)}</td>
+								<td>{k.bezDokaza ? 'ne traži' : 'traži'}</td>
+								<td>{nova !== opisPravila(k) && <span class="oznaka pazi">{nova}</span>}</td>
+							</tr>
+						);
+					})}
+				</Tablica>
+
+				<h2 id="prijedlozi">Prijedlozi</h2>
+				{prijedlozi.length === 0 && <p>Nema prijedloga.</p>}
+				<ul class="kartice prijedlozi">
+					{prijedlozi.map((x) => {
+						const moj = glasa ? x.glasovi.get(glasa.oznaka) : undefined;
+						const ukupno = x.ishod.za + x.ishod.protiv;
+						return (
+							<li class="kartica">
+								<h3>
+									{naziv(x.kriterij)}: {x.bodova} {oblik(x.bodova, 'bod', 'boda', 'bodova')}
+								</h3>
+								<p>{x.obrazlozenje}</p>
+								<p>
+									{x.ishod.zatvoreno ? (
+										<span class:list={['oznaka', x.ishod.prolazi ? 'dobro' : 'lose']}>{x.ishod.prolazi ? 'Prihvaćen' : 'Odbijen'}</span>
+									) : (
+										<span class="oznaka pazi">Glasanje do {datum(x.zatvara, true)}</span>
+									)}
+								</p>
+								<div class="glasovi" role="img" aria-label={`Za ${x.ishod.za}, protiv ${x.ishod.protiv}`}>
+									<span class="za" style={`--udio: ${ukupno ? x.ishod.za / ukupno : 0}`} />
+								</div>
+								<p class="sitno">
+									Za {x.ishod.za} · protiv {x.ishod.protiv}
+									{moj && ` · tvoj glas: ${moj}`}
+								</p>
+								{glasa && !x.ishod.zatvoreno && (
+									<form method="post" action="/unos/glas" class="radnje">
+										<input type="hidden" name="prijedlog" value={x.id} />
+										<button type="submit" name="glas" value="za" class:list={['gumb', { sporedni: moj === 'protiv' }]}>
+											Za
+										</button>
+										<button type="submit" name="glas" value="protiv" class:list={['gumb', { sporedni: moj !== 'protiv' }]}>
+											Protiv
+										</button>
+									</form>
+								)}
+							</li>
+						);
+					})}
+				</ul>
+
+				{povjerenstvo && (
+					<>
+						<h2 id="novi">Novi prijedlog</h2>
+						<form class="unos ploca" method="post" action="/unos/prijedlog" aria-labelledby="novi">
+							<div class="polja">
+							<div class="polje dvostruko">
+								<label for="kriterij">Kriterij</label>
+								<select id="kriterij" name="kriterij" required>
+									{p.tablica.kriteriji
+										.filter((k) => mozeSeMijenjati(p.tablica, k.kljuc))
+										.map((k) => (
+											<option value={k.kljuc}>
+												{k.naziv} ({opisPravila(k)})
+											</option>
+										))}
+								</select>
+							</div>
+							<div class="polje">
+								<label for="bodova">Bodova</label>
+								<div class="s-jedinicom">
+									<input type="number" id="bodova" name="bodova" required min="0" max="20" step="1" inputmode="numeric" />
+									<span aria-hidden="true">bodova</span>
+								</div>
+							</div>
+							<div class="polje">
+								<label for="zatvara">Glasanje do</label>
+								<input type="date" id="zatvara" name="zatvara" required min={pomakni(sada, 1)} max={pomakni(sada, 60)} value={pomakni(sada, 14)} />
+							</div>
+							<div class="polje puno">
+								<label for="obrazlozenje">Obrazloženje</label>
+								<textarea id="obrazlozenje" name="obrazlozenje" required minlength="3" maxlength="400" />
+							</div>
+							</div>
+							<div class="podnozje">
+								<button type="submit" class="gumb">
+									Otvori glasanje
+								</button>
+							</div>
+						</form>
+					</>
+				)}
+
+				<h2 id="nacrt">Lista s nacrtom {iduca.verzija}</h2>
+				{izmijenjeni.length === 0 ? (
+					<p>Nijedna izmjena još nije izglasana.</p>
+				) : (
+					<>
+						<p>
+							{izmijenjeni.map((k, i) => (
+								<>
+									{i > 0 && ', '}
+									{k.naziv}: {opisPravila(k)} → {opisPravila(iduca.kriteriji.find((x) => x.kljuc === k.kljuc)!)}
+								</>
+							))}
+						</p>
+						{promjene.length === 0 ? (
+							<p>Lista ostaje ista.</p>
+						) : (
+							<Tablica
+								id="nacrt-naslov"
+								naslov={`${promjene.length} ${oblik(promjene.length, 'promjena', 'promjene', 'promjena')} na listi`}
+								stupci={['Nastavnik', p.tablica.verzija, iduca.verzija, 'Mjesto']}
+							>
+								{promjene.map(({ m, nova, n }) => (
+									<tr>
+										<th scope="row">
+											<a href={`/lista/${n.oznaka}`}>{n.punoIme}</a>
+											<span class="manje">
+												{n.oznaka} · {n.predmet}
+											</span>
+										</th>
+										<td class="broj">{m.rezultat.ukupno}</td>
+										<td class="broj">{nova.rezultat.ukupno}</td>
+										<td class="broj">
+											{m.mjesto}. → {nova.mjesto}.
+										</td>
+									</tr>
+								))}
+							</Tablica>
+						)}
+					</>
+				)}
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.prijedlozi {
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	}
+	.glasovi {
+		height: 8px;
+		margin: 8px 0 4px;
+		border-radius: 4px;
+		background: var(--crveno);
+		overflow: hidden;
+	}
+	.glasovi .za {
+		display: block;
+		height: 100%;
+		width: calc(var(--udio) * 100%);
+		background: var(--zeleno);
+	}
+	.prijedlozi .radnje {
+		margin-top: 12px;
+	}
+</style>

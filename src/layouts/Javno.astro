@@ -1,0 +1,53 @@
+---
+// Okvir javnih stranica: popis natječaja i prototip (lista, raspodjela, zamjene…).
+// Sve se čita bez prijave. Specifikacija i stranice računa koriste Osnova.astro.
+import '@fontsource-variable/literata/opsz.css';
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+import '../styles/tokeni.css';
+import '../styles/javno.css';
+import Podnozje from '../components/Podnozje.astro';
+import Zaglavlje from '../components/Zaglavlje.astro';
+
+interface Props {
+	naslov: string;
+	opis?: string;
+}
+const { naslov, opis = 'Nadopuna satnice, viškovi i zamjene radnih mjesta nastavnika po istim, javnim kriterijima.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="hr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<meta name="robots" content="noindex" />
+		<meta name="description" content={opis} />
+		<meta name="theme-color" content="#0e3f8c" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{naslov === 'e-satnica' ? naslov : `${naslov} · e-satnica`}</title>
+	</head>
+	<body>
+		<a class="preskoci" href="#sadrzaj">Preskoči na sadržaj</a>
+		<Zaglavlje />
+		<slot />
+		<Podnozje />
+	</body>
+</html>
+
+<style>
+	.preskoci {
+		position: absolute;
+		inset-inline-start: 8px;
+		inset-block-start: -100px;
+		z-index: 10;
+		padding: 10px 14px;
+		font-weight: 600;
+		color: var(--tinta);
+		background: var(--papir);
+		border-radius: 6px;
+	}
+	.preskoci:focus {
+		inset-block-start: 8px;
+	}
+</style>

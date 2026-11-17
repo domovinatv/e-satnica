@@ -1,0 +1,777 @@
+/* Zajednički stilovi javnih stranica (layouts/Javno.astro). */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+body {
+	margin: 0;
+	font: 1.0625rem/1.5 var(--sans);
+	color: var(--tinta);
+	background: var(--papir);
+}
+a {
+	color: var(--more);
+}
+:focus-visible {
+	outline: 3px solid var(--more);
+	outline-offset: 2px;
+}
+.sirina {
+	max-width: 1120px;
+	margin: 0 auto;
+}
+.sadrzaj {
+	padding: 24px 16px 8px;
+}
+.sadrzaj > :first-child {
+	margin-top: 0;
+}
+.sadrzaj h2 {
+	margin: 40px 0 8px;
+	font-family: var(--serif);
+	font-size: 1.6rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-wrap: balance;
+}
+.sadrzaj h3 {
+	margin: 24px 0 6px;
+	font-family: var(--serif);
+	font-size: 1.25rem;
+	font-weight: 600;
+}
+/* Tekst ostaje čitljive širine; popisi s vlastitim razredom (kartice, koraci) slažu se sami. */
+.sadrzaj p,
+.sadrzaj :is(ul, ol):not([class]) {
+	max-width: 72ch;
+}
+.sitno {
+	font-size: 0.94rem;
+	color: var(--siva);
+}
+.broj {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Oznake stanja: uvijek s tekstom, boja je samo pojačanje. */
+.oznaka {
+	display: inline-block;
+	padding: 1px 10px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	line-height: 1.5;
+	white-space: nowrap;
+	color: var(--more);
+	background: var(--nebo);
+	border: 1px solid var(--crta);
+	border-radius: 999px;
+}
+.oznaka.dobro {
+	color: var(--zeleno);
+	background: transparent;
+	border-color: currentColor;
+}
+.oznaka.pazi {
+	color: var(--zuto);
+	background: var(--zuto-podloga);
+	border-color: transparent;
+}
+.oznaka.lose {
+	color: var(--crveno);
+	background: transparent;
+	border-color: currentColor;
+}
+.oznaka.tiho {
+	color: var(--siva);
+	background: transparent;
+}
+
+/* Napomena uz sadržaj: otvoreno pitanje, upozorenje, objašnjenje. */
+.napomena {
+	max-width: 72ch;
+	margin: 16px 0;
+	padding: 10px 14px;
+	background: var(--nebo);
+	border-inline-start: 4px solid var(--more);
+}
+.napomena.pazi {
+	background: var(--zuto-podloga);
+	border-color: var(--zuto);
+}
+.napomena > :first-child {
+	margin-top: 0;
+}
+.napomena > :last-child {
+	margin-bottom: 0;
+}
+
+.gumb {
+	display: inline-block;
+	min-height: 48px;
+	padding: 11px 20px;
+	font: inherit;
+	font-weight: 600;
+	color: #ffffff;
+	text-decoration: none;
+	background: #0e3f8c;
+	border: 0;
+	border-radius: 6px;
+	cursor: pointer;
+}
+.gumb:hover {
+	background: #0b3270;
+}
+
+.gumb.sporedni {
+	color: var(--more);
+	background: transparent;
+	border: 1px solid var(--more);
+}
+.gumb.sporedni:hover {
+	background: var(--nebo);
+}
+
+/*
+ * Obrasci za unos. Natpis je iznad polja, polja su visoka barem 48 px. Kratka polja iste
+ * skupine stoje jedno uz drugo (.polja), dugačka preko cijelog reda (.puno). Obrazac na
+ * listu (.ploca) je odvojen od ostatka stranice; izbor od dvije do pet mogućnosti su
+ * vidljive pločice (.izbori), uz izvorni radio ili kvadratić.
+ */
+.unos {
+	max-width: 760px;
+	margin: 12px 0 0;
+	container-type: inline-size;
+}
+.ploca {
+	background: var(--ploca);
+	border: 1px solid var(--crta);
+	border-radius: 12px;
+	padding: clamp(16px, 3.5cqi, 28px);
+}
+.unos .polje {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-inline-size: 0;
+	margin: 0 0 16px;
+}
+.unos .polja {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+	gap: 16px 20px;
+	margin: 0 0 20px;
+}
+.unos .polja > .polje {
+	margin: 0;
+}
+/* Natpis koji se prelomi u dva retka ne spušta svoje polje: polja u redu stoje na istoj crti. */
+.unos .polja > div.polje {
+	justify-content: flex-end;
+}
+.unos .polja > .puno {
+	grid-column: 1 / -1;
+}
+@container (width > 30rem) {
+	.unos .polja > .dvostruko {
+		grid-column: span 2;
+	}
+}
+.unos label,
+.unos legend {
+	padding: 0;
+	font-weight: 600;
+}
+/* Skupina polja s naslovom; skupine dijeli tanka crta. */
+.unos .skupina {
+	min-inline-size: 0;
+	margin: 0 0 20px;
+	padding: 20px 0 0;
+	border: 0;
+	border-top: 1px solid var(--crta);
+}
+.unos .skupina:first-child {
+	padding-top: 0;
+	border-top: 0;
+}
+.unos .skupina > legend {
+	float: inline-start;
+	width: 100%;
+	margin: 0 0 12px;
+	font-family: var(--serif);
+	font-size: 1.15rem;
+}
+.unos .skupina > legend + * {
+	clear: both;
+}
+/* Upute stoje u praznom polju, ne ispod natpisa; boja im mora ostati čitljiva. */
+.unos ::placeholder {
+	color: var(--siva);
+	opacity: 1;
+}
+.unos input[readonly] {
+	background: var(--nebo);
+}
+.unos :is(input:not([type='checkbox'], [type='radio']), select, textarea) {
+	width: 100%;
+	min-height: 48px;
+	padding: 8px 12px;
+	font: inherit;
+	font-size: max(1rem, 1em);
+	color: var(--tinta);
+	background: var(--papir);
+	border: 1px solid var(--siva);
+	border-radius: 8px;
+}
+.unos textarea {
+	min-height: 104px;
+	resize: vertical;
+}
+.unos input[type='number'] {
+	max-width: 12rem;
+	font-variant-numeric: tabular-nums;
+}
+.unos :is(input, select, textarea):user-invalid {
+	border: 2px solid var(--crveno);
+}
+.unos fieldset {
+	min-inline-size: 0;
+	margin: 0 0 16px;
+	padding: 0;
+	border: 0;
+}
+.unos .polja > fieldset {
+	margin: 0;
+}
+/* Broj s jedinicom (km, sati): jedinica je u polju, a natpis je kaže čitaču zaslona. */
+.s-jedinicom {
+	position: relative;
+	max-width: 12rem;
+}
+.unos .s-jedinicom input[type='number'] {
+	max-width: none;
+	padding-inline-end: 3.6rem;
+}
+.s-jedinicom > span {
+	position: absolute;
+	inset-inline-end: 14px;
+	top: 50%;
+	translate: 0 -50%;
+	color: var(--siva);
+	pointer-events: none;
+}
+/* Pločice izbora: cijela je pločica natpis, pa je klik bilo gdje izbor. */
+.unos .izbori {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+.unos .izbori > label,
+.unos .kucica {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 48px;
+	padding: 8px 16px 8px 12px;
+	font-weight: 400;
+	background: var(--papir);
+	border: 1px solid var(--crta);
+	border-radius: 8px;
+	box-shadow: inset 0 0 0 1px transparent;
+	cursor: pointer;
+}
+.unos .kucica label {
+	font-weight: 400;
+	cursor: pointer;
+}
+.unos :is(.izbori > label, .kucica):has(input:checked) {
+	border-color: var(--more);
+	box-shadow: inset 0 0 0 1px var(--more);
+}
+.unos :is(.izbori > label, .kucica):has(input:focus-visible) {
+	outline: 3px solid var(--more);
+	outline-offset: 2px;
+}
+.unos :is(.izbori, .kucica) input {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	margin: 0;
+}
+.unos .kucica + .kucica {
+	margin-top: 8px;
+}
+/* Gumbi obrasca stoje na dnu lista, odvojeni crtom. */
+.unos .podnozje {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px 16px;
+	margin: 4px 0 0;
+}
+.ploca .podnozje {
+	padding-top: 16px;
+	border-top: 1px solid var(--crta);
+}
+.radnje {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 8px;
+	margin: 8px 0 0;
+}
+.radnje form {
+	margin: 0;
+}
+
+/*
+ * Radna stranica uloge (/moje): kazalo odjeljaka s brojem onoga što čeka, a desno
+ * odjeljci. Na širokom zaslonu kazalo stoji uz sadržaj; na uskom je red poveznica
+ * na vrhu koji se pomiče vodoravno.
+ */
+.radni {
+	display: grid;
+	gap: 8px 56px;
+}
+.radni-nav,
+.radni-sadrzaj {
+	min-width: 0;
+}
+.radni-nav ul {
+	display: flex;
+	gap: 2px;
+	margin: 0;
+	padding: 0 0 2px;
+	list-style: none;
+	overflow-x: auto;
+	scroll-target-group: auto;
+	border-bottom: 1px solid var(--crta);
+}
+.radni-nav li > a {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	min-height: 44px;
+	padding: 8px 12px;
+	white-space: nowrap;
+	color: var(--tinta);
+	text-decoration: none;
+	border-bottom: 3px solid transparent;
+}
+.radni-nav li > a:hover {
+	color: var(--more);
+}
+.radni-nav li > a:is(:target-current, .target-current) {
+	color: var(--more);
+	font-weight: 700;
+	border-color: var(--more);
+}
+/* Broj onoga što čeka tvoju radnju; sunce je boja „na tebi je red". */
+.ceka-broj {
+	min-width: 1.6em;
+	padding: 0 6px;
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1.6;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+	color: #0f2342;
+	background: var(--sunce);
+	border-radius: 999px;
+}
+.radni-dno {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 20px;
+	margin: 12px 0 0;
+}
+@media (min-width: 900px) {
+	.radni {
+		grid-template-columns: 12.5rem minmax(0, 1fr);
+		align-items: start;
+	}
+	.radni-nav {
+		position: sticky;
+		top: 24px;
+	}
+	.radni-nav ul {
+		flex-direction: column;
+		overflow: visible;
+		border-bottom: 0;
+		border-inline-start: 1px solid var(--crta);
+	}
+	.radni-nav li > a {
+		margin-inline-start: -1px;
+		border-bottom: 0;
+		border-inline-start: 3px solid transparent;
+	}
+	.radni-dno {
+		flex-direction: column;
+		align-items: start;
+		gap: 10px;
+		margin: 28px 0 0;
+		padding-inline-start: 15px;
+	}
+}
+.radni-dno form {
+	margin: 0;
+}
+.radni-dno .gumb {
+	min-height: 40px;
+	padding: 7px 16px;
+}
+.odjeljak {
+	scroll-margin-top: 16px;
+}
+.odjeljak:focus {
+	outline: none;
+}
+/* Naslov odjeljka s crtom do kraja reda: početak novog lista. */
+.sadrzaj .odjeljak > h2 {
+	display: flex;
+	align-items: baseline;
+	gap: 16px;
+	margin: 48px 0 16px;
+}
+.sadrzaj .odjeljak:first-child > h2 {
+	margin-top: 8px;
+}
+.odjeljak > h2::after {
+	content: '';
+	flex: 1;
+	border-top: 1px solid var(--crta);
+}
+.odjeljak > .sitno:only-of-type,
+.odjeljak > .prazan {
+	color: var(--siva);
+}
+/* Stavka koja traži odluku: list s naslovom, podacima i radnjama. */
+/* List s naslovom: naslov bez gornjeg razmaka; u mreži kartica gumb stoji na dnu. */
+.ploca > h3:first-child {
+	margin-top: 0;
+}
+.kartice > .ploca {
+	display: flex;
+	flex-direction: column;
+}
+.kartice > .ploca > form:last-child {
+	margin-top: auto;
+}
+.odluka {
+	max-width: 760px;
+	margin: 12px 0;
+}
+.odluka h3 {
+	margin: 0 0 4px;
+}
+.odluka .unos {
+	margin-top: 16px;
+}
+
+/* Podaci u parovima naziv i vrijednost. */
+.podaci {
+	max-width: 680px;
+	margin: 16px 0 0;
+	border-top: 1px solid var(--crta);
+}
+.podaci > div {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+	gap: 12px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--crta);
+}
+.podaci dt {
+	color: var(--siva);
+}
+.podaci dd {
+	margin: 0;
+}
+
+/* Brojke na vrhu stranice. */
+.brojke {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+	margin: 20px 0;
+}
+.brojke > div {
+	padding: 12px 14px;
+	border: 1px solid var(--crta);
+	border-radius: 8px;
+}
+.brojke dt {
+	font-size: 0.94rem;
+	color: var(--siva);
+}
+.brojke dd {
+	margin: 2px 0 0;
+	font-family: var(--serif);
+	font-size: 1.9rem;
+	font-weight: 600;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+}
+
+.kartice {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+	gap: 16px;
+	margin: 16px 0;
+	padding: 0;
+	list-style: none;
+}
+.kartica {
+	padding: 16px;
+	border: 1px solid var(--crta);
+	border-radius: 8px;
+}
+.kartica h3 {
+	margin: 0 0 4px;
+}
+.kartica p {
+	margin: 0 0 8px;
+}
+.kartica ul {
+	margin: 0;
+	padding-left: 20px;
+}
+
+/* Filteri: uvijek s gumbom za primjenu, bez slanja pri promjeni. */
+.filteri {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 12px;
+	margin: 16px 0;
+}
+.filteri .polje {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.filteri label,
+.filteri legend {
+	font-size: 0.94rem;
+	font-weight: 600;
+}
+.filteri select {
+	min-height: 48px;
+	padding: 0 12px;
+	font: inherit;
+	font-size: max(1rem, 1em);
+	color: var(--tinta);
+	background: var(--papir);
+	border: 1px solid var(--siva);
+	border-radius: 6px;
+}
+.filteri fieldset {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.filteri .izbor {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 16px;
+	min-height: 48px;
+	align-items: center;
+}
+.filteri .izbor label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 48px;
+	font-weight: 400;
+	font-size: 1rem;
+}
+
+/*
+ * Tablice. Na širokom zaslonu zaglavlje i prvi stupac ostaju vidljivi pri pomicanju;
+ * kad je tablica uža od 600 px, svaki redak postaje kartica s nazivima stupaca.
+ */
+.tablica-kontejner {
+	container-type: inline-size;
+	margin: 16px 0;
+}
+.tablica-omot {
+	overflow: auto;
+	max-inline-size: 100%;
+	max-block-size: min(720px, 85vh);
+	border: 1px solid var(--crta);
+	border-radius: 8px;
+}
+.tablica {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: 1rem;
+}
+.tablica caption {
+	padding: 10px 12px;
+	font-weight: 600;
+	text-align: start;
+	caption-side: top;
+}
+.tablica thead {
+	position: sticky;
+	inset-block-start: 0;
+	z-index: 1;
+}
+.tablica th,
+.tablica td {
+	padding: 10px 12px;
+	text-align: start;
+	vertical-align: top;
+	border-bottom: 1px solid var(--crta);
+}
+.tablica thead th {
+	font-size: 0.94rem;
+	white-space: nowrap;
+	color: var(--siva);
+	background: var(--nebo);
+}
+.tablica tbody th {
+	position: sticky;
+	inset-inline-start: 0;
+	font-weight: 600;
+	background: var(--papir);
+}
+.tablica tbody tr:last-child > * {
+	border-bottom: 0;
+}
+.tablica .manje {
+	display: block;
+	font-size: 0.94rem;
+	font-weight: 400;
+	color: var(--siva);
+}
+
+@container (width < 600px) {
+	.tablica-omot {
+		overflow: visible;
+		max-block-size: none;
+		border: 0;
+		border-radius: 0;
+	}
+	.tablica,
+	.tablica caption,
+	.tablica tbody,
+	.tablica tr,
+	.tablica th,
+	.tablica td {
+		display: block;
+	}
+	.tablica thead {
+		display: none;
+	}
+	.tablica caption {
+		padding-inline: 0;
+	}
+	.tablica tr {
+		margin-block-end: 12px;
+		border: 1px solid var(--crta);
+		border-radius: 8px;
+		overflow: clip;
+	}
+	.tablica th,
+	.tablica td {
+		padding: 6px 12px;
+		border-bottom: 0;
+	}
+	.tablica tbody th {
+		position: static;
+		padding-block: 10px;
+		background: var(--nebo);
+	}
+	.tablica td:empty {
+		display: none;
+	}
+	.tablica td::before {
+		font-size: 0.94rem;
+		color: var(--siva);
+	}
+	.tablica td:nth-child(2)::before {
+		content: var(--label-2) ': ';
+	}
+	.tablica td:nth-child(3)::before {
+		content: var(--label-3) ': ';
+	}
+	.tablica td:nth-child(4)::before {
+		content: var(--label-4) ': ';
+	}
+	.tablica td:nth-child(5)::before {
+		content: var(--label-5) ': ';
+	}
+	.tablica td:nth-child(6)::before {
+		content: var(--label-6) ': ';
+	}
+	.tablica td:nth-child(7)::before {
+		content: var(--label-7) ': ';
+	}
+	.tablica td:nth-child(8)::before {
+		content: var(--label-8) ': ';
+	}
+}
+
+/* Životni put i godišnji ciklus: koraci jedan ispod drugog, povezani crtom. */
+.koraci {
+	max-width: 760px;
+	margin: 16px 0;
+	padding: 0;
+	list-style: none;
+}
+.koraci > li {
+	position: relative;
+	padding: 0 0 20px 28px;
+	border-inline-start: 2px solid var(--crta);
+	margin-inline-start: 7px;
+}
+.koraci > li:last-child {
+	padding-bottom: 0;
+	border-color: transparent;
+}
+.koraci > li::before {
+	content: '';
+	position: absolute;
+	inset-inline-start: -8px;
+	inset-block-start: 5px;
+	width: 14px;
+	height: 14px;
+	background: var(--more);
+	border: 3px solid var(--papir);
+	border-radius: 50%;
+	outline: 1px solid var(--more);
+}
+.koraci > li.ceka::before {
+	background: var(--papir);
+}
+.koraci .naslov {
+	margin: 0;
+	font-weight: 600;
+}
+.koraci p {
+	margin: 2px 0 0;
+}
+
+/* Sklopivi dijelovi: strelica je uz naslov, ne na suprotnom rubu. */
+details > summary {
+	cursor: pointer;
+	font-weight: 600;
+	color: var(--more);
+}
+details > summary:hover {
+	text-decoration: underline;
+}
+
+.prazno {
+	padding: 40px 0;
+}
+.prazno-naslov {
+	margin: 0 0 4px;
+	font-family: var(--serif);
+	font-size: 1.3rem;
+	font-weight: 600;
+}

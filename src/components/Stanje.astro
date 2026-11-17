@@ -1,0 +1,21 @@
+---
+// Oznaka stanja slobodnih sati. Stanje uvijek piše riječima; boja je samo pojačanje.
+import { STANJA, type Stanje } from '../lib/sati/stanja';
+
+interface Props {
+	stanje: Stanje;
+}
+const { stanje } = Astro.props;
+const VRSTA: Record<Stanje, string> = {
+	nastali: 'tiho',
+	prijavljeni: 'tiho',
+	ponudeni: '',
+	natjecaj: '',
+	dodijeljeni: 'dobro',
+	odbijeni: 'lose',
+	hitno: 'pazi',
+	dana60: 'pazi',
+};
+---
+
+<span class:list={['oznaka', VRSTA[stanje]]}>{STANJA[stanje]}</span>

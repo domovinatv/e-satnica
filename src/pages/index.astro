@@ -1,4 +1,935 @@
 ---
+// Naslovnica: hero s dva ulaza (nastavnici, ravnatelji), kako sustav radi, i kratak
+// pregled natječaja, slobodnih sati i zamjena. Stranice povjerenstva nisu ovdje,
+// nego u izborniku „Admin".
+import RedakOglasa from '../components/RedakOglasa.astro';
+import Stanje from '../components/Stanje.astro';
+import Val from '../components/Val.astro';
+import Javno from '../layouts/Javno.astro';
+import { danas, datum, sati } from '../lib/datumi';
+import { poredaj, ucitajOglase } from '../lib/oglasi';
+import { ucitajPrototip, zamjene } from '../lib/prototip';
+import { probnaPrijavaUkljucena } from '../lib/uloga';
+
 export const prerender = false;
-return Astro.redirect('/oglasi');
+
+const sada = danas();
+const otvoreni = poredaj(
+	(await ucitajOglase()).filter((o) => o.rok >= sada),
+	'',
+);
+const p = await ucitajPrototip();
+const zadnjaPromjena = (s: { prijelazi: { vrijeme: string }[]; nastalo: string }) => s.prijelazi.at(-1)?.vrijeme ?? s.nastalo;
+const zadnjiSati = p ? [...p.sati].sort((a, b) => zadnjaPromjena(b).localeCompare(zadnjaPromjena(a))).slice(0, 4) : [];
+const lanci = p ? zamjene(p).lanci.slice(0, 3) : [];
+
+// Ravnatelj traži zamjenu tako da prijavi slobodne sate. Bez probne prijave to još ne
+// može, pa poveznica vodi na popis slobodnih sati.
+const ravnatelj = probnaPrijavaUkljucena()
+	? Astro.locals.uloga?.vrsta === 'ravnatelj'
+		? '/moje#prijava-sati'
+		: '/probna-prijava'
+	: '/sati';
+
+// --- Ilustracija: tjedna satnica jednog nastavnika ------------------------------
+// Pet dana po osam sati. Tamni sati su oni koje već ima, zeleni oni koje je dobio
+// kroz e-satnicu (+6), ostali su prazni.
+const STARI: number[][] = [[0, 1, 2], [1, 2, 3], [0, 1], [2, 3, 4], [0, 1, 2]];
+const NOVI: number[][] = [[3], [], [2, 3], [5], [3, 4]];
+const DANI = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet'];
+const celija = (dan: number, sat: number) => ({ x: 92 + dan * 56, y: 184 + sat * 30 });
+const celije = DANI.flatMap((_, dan) =>
+	Array.from({ length: 8 }, (_, sat) => ({
+		...celija(dan, sat),
+		vrsta: STARI[dan].includes(sat) ? 'stari' : NOVI[dan].includes(sat) ? 'novi' : 'prazan',
+	})),
+);
+const stari = celije.filter((c) => c.vrsta === 'stari');
+const novi = celije.filter((c) => c.vrsta === 'novi');
+const prazni = celije.filter((c) => c.vrsta === 'prazan');
+
+// Mjerilo od 40 crtica (pet dana po osam), kao na popisu natječaja.
+const crtica = (i: number, korak: number, razmak: number) => i * korak + Math.floor(i / 8) * razmak;
+const MJERILO = Array.from({ length: 40 }, (_, i) => crtica(i, 5, 4) + 1.5);
+const NATJECAJ = Array.from({ length: 40 }, (_, i) => 338 + crtica(i, 3.6, 4));
 ---
+
+<Javno naslov="e-satnica">
+	<main id="sadrzaj">
+		<section class="hero" aria-labelledby="hero-naslov">
+			<div class="sirina hero-unutra">
+				<div class="hero-tekst">
+					<h1 id="hero-naslov">e-satnica</h1>
+					<svg class="hero-mjerilo" viewBox="0 0 214 16" preserveAspectRatio="none" aria-hidden="true">
+						{MJERILO.map((x, i) => <line x1={x} x2={x} y1="0" y2="16" style={`--sibling-index: ${i + 1}`} />)}
+					</svg>
+					<p class="proba">Testni prototip</p>
+
+					<ul class="ulazi">
+						<li style="--sibling-index: 1">
+							<a class="ulaz" href="/oglasi">
+								<svg class="ulaz-ikona" viewBox="0 0 48 48" aria-hidden="true">
+									<rect class="i-crta" x="5" y="8" width="38" height="32" rx="6" />
+									<path class="i-crta" d="M5 16h38" />
+									<rect class="i-puno" x="10" y="21" width="8" height="6" rx="1.5" />
+									<rect class="i-puno" x="20" y="21" width="8" height="6" rx="1.5" />
+									<rect class="i-prazno" x="30" y="21" width="8" height="6" rx="1.5" />
+									<rect class="i-puno" x="10" y="30" width="8" height="6" rx="1.5" />
+									<rect class="i-prazno" x="20" y="30" width="8" height="6" rx="1.5" />
+									<circle class="i-sunce" cx="38" cy="38" r="8" />
+									<path class="i-plus" d="M38 34v8M34 38h8" />
+								</svg>
+								<span class="tko">Nastavnici</span>
+								<span class="sto">Traži sate</span>
+								<svg class="strelica" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
+							</a>
+						</li>
+						<li style="--sibling-index: 2">
+							<a class="ulaz" href={ravnatelj}>
+								<svg class="ulaz-ikona" viewBox="0 0 48 48" aria-hidden="true">
+									<path class="i-crta" d="M6 42V22l18-12 18 12v20z" />
+									<path class="i-crta" d="M24 10V3" />
+									<path class="i-zastava" d="M24 3h9l-2 3 2 3h-9z" />
+									<rect class="i-puno" x="20" y="31" width="8" height="11" rx="1" />
+									<rect class="i-prazno" x="11" y="25" width="6" height="6" rx="1" />
+									<rect class="i-prazno" x="31" y="25" width="6" height="6" rx="1" />
+									<circle class="i-sunce" cx="39" cy="38" r="8" />
+									<path class="i-plus" d="M35.5 38h7M39 34.5l3.5 3.5-3.5 3.5" />
+								</svg>
+								<span class="tko">Ravnatelji</span>
+								<span class="sto">Traži zamjene</span>
+								<svg class="strelica" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg>
+							</a>
+						</li>
+					</ul>
+				</div>
+
+				<svg class="hero-slika" viewBox="0 0 560 470" aria-hidden="true">
+					<defs>
+						<filter id="sjena" x="-20%" y="-20%" width="140%" height="150%">
+							<feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#04122b" flood-opacity="0.38" />
+						</filter>
+					</defs>
+
+					<circle class="sunce-sjaj" cx="492" cy="44" r="78" />
+					<circle class="sunce" cx="492" cy="44" r="38" />
+
+					<g class="karta-iza" transform="translate(-10 18) rotate(7 418 155)">
+						<rect class="karta-iza-podloga" x="318" y="96" width="200" height="118" rx="16" />
+						<rect class="karta-iza-redak" x="338" y="118" width="112" height="12" rx="6" />
+						<rect class="karta-iza-redak slabo" x="338" y="138" width="72" height="10" rx="5" />
+						{NATJECAJ.map((x, i) => <line class:list={['karta-iza-crtica', { puna: i < 22 }]} x1={x} x2={x} y1="166" y2="190" />)}
+					</g>
+
+					<g class="satnica" transform="rotate(-4 210 290)" filter="url(#sjena)">
+						<rect class="satnica-papir" x="40" y="130" width="340" height="300" rx="20" />
+						{DANI.map((d, i) => (
+							<text class="satnica-dan" x={117 + i * 56} y="168">
+								{d}
+							</text>
+						))}
+						{Array.from({ length: 8 }, (_, r) => (
+							<text class="satnica-sat" x="70" y={200 + r * 30}>
+								{r + 1}
+							</text>
+						))}
+						<g class="prazni">
+							{prazni.map((c) => (
+								<rect x={c.x} y={c.y} width="50" height="24" rx="6" />
+							))}
+						</g>
+						<g class="stari">
+							{stari.map((c, i) => (
+								<rect x={c.x} y={c.y} width="50" height="24" rx="6" style={`--sibling-index: ${i + 1}`} />
+							))}
+						</g>
+						<g class="novi">
+							{novi.map((c, i) => (
+								<rect x={c.x} y={c.y} width="50" height="24" rx="6" style={`--sibling-index: ${i + 1}`} />
+							))}
+						</g>
+					</g>
+
+					<path class="ruta" d="M150 418 C 198 410, 220 352, 227 302" />
+					<g class="lokacija">
+						<rect x="14" y="398" width="146" height="44" rx="22" />
+						<path class="lokacija-pin" d="M44 408a8 8 0 0 1 8 8c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 8-8z" />
+						<circle class="lokacija-rupa" cx="44" cy="416" r="3" />
+						<text x="64" y="426">8 km</text>
+					</g>
+
+					<g class="znacka">
+						<circle cx="398" cy="164" r="34" />
+						<text x="398" y="173">+6</text>
+					</g>
+
+					<circle class="iskra" cx="512" cy="250" r="5" />
+					<circle class="iskra" cx="30" cy="150" r="4" />
+					<circle class="iskra" cx="300" cy="62" r="3" />
+				</svg>
+			</div>
+
+			<Val />
+		</section>
+
+		<div class="sirina sadrzaj">
+			<section class="kako" aria-labelledby="kako-naslov">
+				<h2 id="kako-naslov">Kako radi</h2>
+				<ol class="koraci3">
+					<li>
+						<span class="kako-broj" aria-hidden="true">1</span>
+						<div class="korak-tijelo">
+							<svg class="kako-ikona" viewBox="0 0 64 64" aria-hidden="true">
+								<path class="k-ispuna" d="M8 56V30l24-16 24 16v26z" />
+								<path class="k-crta" d="M8 56V30l24-16 24 16v26zM32 14V5" />
+								<path class="k-naglasak" d="M32 5h11l-3 4 3 4H32z" />
+								<rect class="k-crta" x="27" y="42" width="10" height="14" />
+								<rect class="k-naglasak" x="14" y="34" width="9" height="7" rx="1.5" />
+								<rect class="k-naglasak" x="41" y="34" width="9" height="7" rx="1.5" />
+							</svg>
+							<p>Ravnatelj prijavi slobodne sate.</p>
+						</div>
+					</li>
+					<li>
+						<span class="kako-broj" aria-hidden="true">2</span>
+						<div class="korak-tijelo">
+							<svg class="kako-ikona" viewBox="0 0 64 64" aria-hidden="true">
+								<rect class="k-ispuna" x="10" y="8" width="44" height="50" rx="6" />
+								<rect class="k-crta" x="10" y="8" width="44" height="50" rx="6" />
+								<path class="k-crta" d="M20 22h16M20 32h20M20 42h12" />
+								<circle class="k-naglasak" cx="46" cy="44" r="9" />
+								<path class="k-crta" d="M42 52l-2 8 6-3 6 3-2-8" />
+							</svg>
+							<p>
+								Nastavnik dobiva bodove po javnoj tablici.
+								<a class="kako-poveznica" href="/kalkulator">Moji bodovi</a>
+							</p>
+						</div>
+					</li>
+					<li>
+						<span class="kako-broj" aria-hidden="true">3</span>
+						<div class="korak-tijelo">
+							<svg class="kako-ikona" viewBox="0 0 64 64" aria-hidden="true">
+								<path class="k-ispuna" d="M8 10h48L38 34v18l-12 6V34z" />
+								<path class="k-crta" d="M8 10h48L38 34v18l-12 6V34z" />
+								<circle class="k-naglasak" cx="32" cy="18" r="4" />
+								<circle class="k-naglasak" cx="22" cy="16" r="3" />
+								<circle class="k-naglasak" cx="42" cy="16" r="3" />
+							</svg>
+							<p>Sati se dijele redom:</p>
+						</div>
+					</li>
+				</ol>
+				<ol class="redoslijed" aria-label="Redoslijed raspodjele">
+					<li>
+						<span class="r-broj" aria-hidden="true">1</span>Tehnološki višak
+					</li>
+					<li>
+						<span class="r-broj" aria-hidden="true">2</span>Nadopuna nepune satnice
+					</li>
+					<li>
+						<span class="r-broj" aria-hidden="true">3</span>Zamjene
+					</li>
+					<li>
+						<span class="r-broj" aria-hidden="true">4</span>Natječaj za nove ljude
+					</li>
+				</ol>
+				<p>
+					<a class="kako-poveznica" href="/specifikacija/07-otvorena-pitanja">Otvorena pitanja</a>
+				</p>
+			</section>
+
+			<section class="odjeljak" aria-labelledby="natjecaji-naslov">
+				<h2 id="natjecaji-naslov">Natječaji</h2>
+				{
+					otvoreni.length === 0 ? (
+						<p>Trenutno nema otvorenih natječaja.</p>
+					) : (
+						<ul class="popis">
+							{otvoreni.slice(0, 3).map((o) => (
+								<RedakOglasa oglas={o} sada={sada} naslov="h3" />
+							))}
+						</ul>
+					)
+				}
+				<a class="gumb sporedni" href="/oglasi">Svi natječaji</a>
+			</section>
+
+			{
+				zadnjiSati.length > 0 && (
+					<section class="odjeljak" aria-labelledby="sati-naslov">
+						<h2 id="sati-naslov">Slobodni sati</h2>
+						<ul class="male">
+							{zadnjiSati.map((s) => (
+								<li class="mala klik">
+									<h3>
+										<a href={`/sati/${s.oznaka}`}>
+											{s.predmet}, {sati(s.sati)}
+										</a>
+									</h3>
+									<p>
+										{s.skola.naziv}, {s.skola.mjesto}
+									</p>
+									<p class="mala-dno">
+										<Stanje stanje={s.stanje} />
+										<span class="sitno">{datum(zadnjaPromjena(s), true)}</span>
+									</p>
+								</li>
+							))}
+						</ul>
+						<a class="gumb sporedni" href="/sati">
+							Svi slobodni sati
+						</a>
+					</section>
+				)
+			}
+
+			{
+				lanci.length > 0 && (
+					<section class="odjeljak" aria-labelledby="zamjene-naslov">
+						<h2 id="zamjene-naslov">Zamjene</h2>
+						<ul class="male">
+							{lanci.map((l) => {
+								const mjesta = [...l.clanovi.map((c) => c.zaposlenje.skola.mjesto), l.clanovi[0].zaposlenje.skola.mjesto];
+								return (
+									<li class="mala">
+										<h3>
+											{l.clanovi[0].nastavnik.predmet}, {sati(l.clanovi[0].zaposlenje.sati)}
+										</h3>
+										<p class="krug">
+											{mjesta.map((m, i) => (
+												<>
+													{i > 0 && (
+														<span class="krug-strelica" aria-hidden="true">
+															→
+														</span>
+													)}
+													{i > 0 && <span class="vizualno-skriveno">, zatim </span>}
+													<span>{m}</span>
+												</>
+											))}
+										</p>
+										<p class="mala-dno">
+											<span class:list={['oznaka', l.vrijedi ? 'dobro' : 'pazi']}>
+												{l.vrijedi ? 'Potvrđena' : `Potvrdilo ${l.potvrdili.size} od ${l.clanovi.length}`}
+											</span>
+											<span class="sitno">{l.clanovi.length === 2 ? 'Par' : `Lanac od ${l.clanovi.length}`}</span>
+										</p>
+									</li>
+								);
+							})}
+						</ul>
+						<a class="gumb sporedni" href="/zamjene">
+							Sve zamjene
+						</a>
+					</section>
+				)
+			}
+		</div>
+	</main>
+</Javno>
+
+<style>
+	/* ---------- Hero ---------- */
+	.hero {
+		--karta: #ffffff;
+		--prazno: #e4ecf7;
+		--staro: #0e3f8c;
+		--novo: #1f9d63;
+		position: relative;
+		isolation: isolate;
+		overflow: clip;
+		color: var(--na-moru);
+		background: var(--pozadina-mora);
+	}
+	@media (prefers-color-scheme: dark) {
+		.hero {
+			--karta: #dfe8f5;
+			--prazno: #c3d1e6;
+		}
+	}
+	/* Blaga mreža kao na papiru satnice, izblijeđena prema rubovima. */
+	.hero::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background-image:
+			linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
+			linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+		background-size: 44px 44px;
+		mask-image: radial-gradient(ellipse 80% 70% at 70% 35%, #000 20%, transparent 75%);
+		pointer-events: none;
+	}
+	.hero-unutra {
+		display: grid;
+		gap: 24px;
+		align-items: center;
+		padding: 20px 16px 0;
+	}
+	@media (min-width: 900px) {
+		.hero-unutra {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+			gap: 40px;
+			padding-top: 36px;
+		}
+	}
+	h1 {
+		margin: 0;
+		font-family: var(--serif);
+		font-size: clamp(3.4rem, 11vw, 6.6rem);
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: -0.025em;
+	}
+	.hero-mjerilo {
+		display: block;
+		width: min(340px, 86%);
+		height: 18px;
+		margin: 16px 0 0;
+		stroke: var(--na-moru);
+		stroke-width: 3;
+	}
+	.proba {
+		display: inline-block;
+		margin: 18px 0 0;
+		padding: 2px 10px;
+		font-size: 0.94rem;
+		color: var(--na-moru);
+		border: 1px solid var(--na-moru-siva);
+		border-radius: 999px;
+	}
+
+	.ulazi {
+		display: grid;
+		gap: 12px;
+		margin: 28px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	@media (min-width: 560px) and (max-width: 899px) {
+		.ulazi {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+	@media (min-width: 900px) {
+		.ulazi {
+			max-width: 440px;
+		}
+	}
+	.ulaz {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-areas: 'ikona tko strelica' 'ikona sto strelica';
+		column-gap: 14px;
+		align-items: center;
+		height: 100%;
+		padding: 16px 16px 16px 14px;
+		color: var(--na-moru);
+		text-decoration: none;
+		background: rgb(255 255 255 / 0.08);
+		border: 1px solid rgb(255 255 255 / 0.28);
+		border-radius: 14px;
+	}
+	.ulaz:hover {
+		background: rgb(255 255 255 / 0.15);
+		border-color: rgb(255 255 255 / 0.6);
+	}
+	.ulaz:focus-visible {
+		outline: 3px solid var(--na-moru);
+		outline-offset: 3px;
+	}
+	.ulaz-ikona {
+		grid-area: ikona;
+		width: 48px;
+		height: 48px;
+	}
+	.tko {
+		grid-area: tko;
+		font-size: 0.88rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--na-moru-siva);
+	}
+	.sto {
+		grid-area: sto;
+		font-family: var(--serif);
+		font-size: 1.55rem;
+		font-weight: 600;
+		line-height: 1.15;
+	}
+	.strelica {
+		grid-area: strelica;
+		width: 24px;
+		height: 24px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.strelica {
+			transition: translate 0.2s ease-out;
+		}
+		.ulaz:hover .strelica {
+			translate: 4px 0;
+		}
+	}
+	.i-crta,
+	.i-plus {
+		fill: none;
+		stroke: var(--na-moru);
+		stroke-width: 2.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.i-plus {
+		stroke: #0f2342;
+	}
+	.i-puno {
+		fill: var(--na-moru);
+	}
+	.i-prazno {
+		fill: rgb(255 255 255 / 0.3);
+	}
+	.i-sunce,
+	.i-zastava {
+		fill: #f6c453;
+	}
+
+	/* Ilustracija */
+	.hero-slika {
+		display: block;
+		width: 100%;
+		max-width: 560px;
+		height: auto;
+		justify-self: center;
+		overflow: visible;
+	}
+	.sunce {
+		fill: #f6c453;
+	}
+	.sunce-sjaj {
+		fill: #f6c453;
+		opacity: 0.16;
+	}
+	.karta-iza-podloga {
+		fill: rgb(255 255 255 / 0.12);
+		stroke: rgb(255 255 255 / 0.4);
+	}
+	.karta-iza-redak {
+		fill: rgb(255 255 255 / 0.75);
+	}
+	.karta-iza-redak.slabo {
+		fill: rgb(255 255 255 / 0.4);
+	}
+	.karta-iza-crtica {
+		stroke: rgb(255 255 255 / 0.3);
+		stroke-width: 2;
+	}
+	.karta-iza-crtica.puna {
+		stroke: #ffffff;
+	}
+	.satnica-papir {
+		fill: var(--karta);
+	}
+	.satnica-dan {
+		font: 600 13px var(--sans);
+		fill: #4f5f78;
+		text-anchor: middle;
+	}
+	.satnica-sat {
+		font: 500 12px var(--sans);
+		fill: #8a97ab;
+		text-anchor: middle;
+	}
+	.prazni rect {
+		fill: var(--prazno);
+	}
+	.stari rect {
+		fill: var(--staro);
+	}
+	.novi rect {
+		fill: var(--novo);
+	}
+	.ruta {
+		fill: none;
+		stroke: #f6c453;
+		stroke-width: 3;
+		stroke-linecap: round;
+		stroke-dasharray: 0.1 9;
+	}
+	.lokacija rect {
+		fill: #ffffff;
+		filter: drop-shadow(0 8px 14px rgb(4 18 43 / 0.35));
+	}
+	.lokacija-pin {
+		fill: var(--staro);
+	}
+	.lokacija-rupa {
+		fill: #ffffff;
+	}
+	.lokacija text {
+		font: 700 17px var(--sans);
+		fill: #0f2342;
+	}
+	.znacka circle {
+		fill: #f6c453;
+	}
+	.znacka text {
+		font: 700 25px var(--serif);
+		fill: #0f2342;
+		text-anchor: middle;
+	}
+	.iskra {
+		fill: #f6c453;
+		opacity: 0.7;
+	}
+
+
+	/* Kretanje: samo uz pristanak, a završno stanje je isto kao bez njega. */
+	@keyframes puni {
+		from {
+			stroke-opacity: 0.2;
+		}
+	}
+	@keyframes pojava {
+		from {
+			opacity: 0;
+			transform: scale(0.3);
+		}
+	}
+	@keyframes izron {
+		from {
+			opacity: 0;
+			transform: translateY(16px);
+		}
+	}
+	@keyframes nestaje {
+		from {
+			opacity: 0;
+		}
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.hero-mjerilo line {
+			animation: puni 0.3s ease-out both;
+			animation-delay: calc(var(--sibling-index) * 25ms + 150ms);
+		}
+		.stari rect,
+		.novi rect {
+			transform-box: fill-box;
+			transform-origin: center;
+		}
+		.stari rect {
+			animation: pojava 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+			animation-delay: calc(var(--sibling-index) * 45ms + 300ms);
+		}
+		.novi rect {
+			animation: pojava 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.5) both;
+			animation-delay: calc(var(--sibling-index) * 140ms + 1300ms);
+		}
+		.karta-iza,
+		.lokacija,
+		.znacka {
+			transform-box: fill-box;
+		}
+		.karta-iza {
+			animation: nestaje 0.8s ease-out 0.1s both;
+		}
+		.ruta {
+			animation: nestaje 0.6s ease-out 2s both;
+		}
+		.lokacija {
+			animation: izron 0.6s ease-out 1.8s both;
+		}
+		.znacka {
+			animation: izron 0.6s ease-out 2.2s both;
+		}
+		.ulazi li {
+			animation: izron 0.5s ease-out both;
+			animation-delay: calc(var(--sibling-index) * 120ms + 200ms);
+		}
+		@supports (animation-delay: calc(sibling-index() * 0.1s)) {
+			.hero-mjerilo line {
+				animation-delay: calc(sibling-index() * 25ms + 150ms);
+			}
+			.stari rect {
+				animation-delay: calc(sibling-index() * 45ms + 300ms);
+			}
+			.novi rect {
+				animation-delay: calc(sibling-index() * 140ms + 1300ms);
+			}
+			.ulazi li {
+				animation-delay: calc(sibling-index() * 120ms + 200ms);
+			}
+		}
+	}
+
+	/* ---------- Kako radi ---------- */
+	.kako {
+		--razmak: 32px;
+		margin-top: 8px;
+	}
+	/* Tri koraka iste širine, povezana crtom od broja do broja. */
+	.koraci3 {
+		display: grid;
+		gap: var(--razmak);
+		margin: 24px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	@media (min-width: 760px) {
+		.koraci3 {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+	.koraci3 > li {
+		position: relative;
+	}
+	.koraci3 > li:not(:last-child)::after {
+		content: '';
+		position: absolute;
+		inset-inline-start: 21px;
+		inset-block-start: 52px;
+		inset-block-end: calc(-1 * var(--razmak) + 8px);
+		border-inline-start: 2px dashed var(--crta);
+	}
+	@media (min-width: 760px) {
+		.koraci3 > li:not(:last-child)::after {
+			inset-inline-start: 56px;
+			inset-inline-end: calc(-1 * var(--razmak) + 8px);
+			inset-block-start: 21px;
+			inset-block-end: auto;
+			border-inline-start: 0;
+			border-block-start: 2px dashed var(--crta);
+		}
+	}
+	.kako-broj {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		font-family: var(--serif);
+		font-size: 1.4rem;
+		font-weight: 600;
+		color: var(--na-moru);
+		background: var(--pozadina-mora);
+		border-radius: 50%;
+	}
+	.korak-tijelo {
+		display: grid;
+		grid-template-columns: 56px minmax(0, 1fr);
+		gap: 14px;
+		align-items: start;
+		margin: 12px 0 0;
+		padding-inline-start: 0;
+	}
+	@media (max-width: 759px) {
+		.korak-tijelo {
+			margin-inline-start: 58px;
+			margin-block-start: -44px;
+		}
+	}
+	.kako-ikona {
+		width: 56px;
+		height: 56px;
+	}
+	.k-ispuna {
+		fill: var(--nebo);
+	}
+	.k-crta {
+		fill: none;
+		stroke: var(--more);
+		stroke-width: 2.4;
+		stroke-linejoin: round;
+		stroke-linecap: round;
+	}
+	.k-naglasak {
+		fill: var(--sunce);
+	}
+	.korak-tijelo p {
+		margin: 4px 0 0;
+		font-size: 1.1rem;
+		font-weight: 600;
+		line-height: 1.35;
+	}
+	.kako-poveznica {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 6px;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+	.korak-tijelo .kako-poveznica {
+		display: flex;
+	}
+	.kako-poveznica::after {
+		content: '→';
+		content: '→' / '';
+	}
+
+	/* Redoslijed raspodjele: jedna traka, četiri jednaka dijela, od prvog prema zadnjem. */
+	.redoslijed {
+		--vrh: 18px;
+		display: grid;
+		margin: 28px 0 12px;
+		padding: 0;
+		list-style: none;
+	}
+	.redoslijed li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 64px;
+		padding: 14px 18px calc(14px + var(--vrh) / 2);
+		font-weight: 600;
+		line-height: 1.25;
+		color: #ffffff;
+		clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--vrh)), 50% 100%, 0 calc(100% - var(--vrh)));
+	}
+	.redoslijed li + li {
+		margin-top: calc(-1 * var(--vrh) + 4px);
+		padding-top: calc(14px + var(--vrh));
+		clip-path: polygon(0 0, 50% var(--vrh), 100% 0, 100% calc(100% - var(--vrh)), 50% 100%, 0 calc(100% - var(--vrh)));
+	}
+	.redoslijed li:last-child {
+		clip-path: polygon(0 0, 50% var(--vrh), 100% 0, 100% 100%, 0 100%);
+		padding-bottom: 14px;
+	}
+	@media (min-width: 760px) {
+		.redoslijed {
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+		.redoslijed li,
+		.redoslijed li + li,
+		.redoslijed li:last-child {
+			margin: 0;
+			padding: 12px calc(var(--vrh) + 10px) 12px calc(var(--vrh) + 16px);
+		}
+		.redoslijed li:first-child {
+			padding-inline-start: 18px;
+			clip-path: polygon(0 0, calc(100% - var(--vrh)) 0, 100% 50%, calc(100% - var(--vrh)) 100%, 0 100%);
+		}
+		.redoslijed li + li {
+			margin-inline-start: calc(-1 * var(--vrh) + 4px);
+			clip-path: polygon(0 0, calc(100% - var(--vrh)) 0, 100% 50%, calc(100% - var(--vrh)) 100%, 0 100%, var(--vrh) 50%);
+		}
+		.redoslijed li:last-child {
+			clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, var(--vrh) 50%);
+		}
+	}
+	.redoslijed li:nth-child(1) {
+		background: #0e3f8c;
+	}
+	.redoslijed li:nth-child(2) {
+		background: #22539c;
+	}
+	.redoslijed li:nth-child(3) {
+		background: #2f64b0;
+	}
+	.redoslijed li:nth-child(4) {
+		color: #0f2342;
+		background: #f6c453;
+	}
+	.r-broj {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		font-family: var(--serif);
+		font-size: 1rem;
+		border: 1.5px solid currentColor;
+		border-radius: 50%;
+	}
+	@media (forced-colors: active) {
+		.redoslijed li {
+			clip-path: none;
+			border: 1px solid CanvasText;
+		}
+	}
+
+	/* ---------- Pregled dijelova ---------- */
+	.odjeljak {
+		margin-top: 56px;
+	}
+	.odjeljak > .gumb {
+		margin-top: 16px;
+	}
+	.popis {
+		margin: 8px 0 0;
+		padding: 0;
+		list-style: none;
+		border-top: 1px solid var(--crta);
+	}
+	.male {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		gap: 12px;
+		margin: 12px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+	.mala {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		padding: 14px 16px;
+		border: 1px solid var(--crta);
+		border-radius: 12px;
+	}
+	.sadrzaj .mala h3 {
+		margin: 0 0 4px;
+		font-size: 1.12rem;
+	}
+	.mala p {
+		margin: 0 0 10px;
+		color: var(--siva);
+	}
+	.mala-dno {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 8px;
+		margin-top: auto !important;
+		margin-bottom: 0 !important;
+	}
+	/* Cijela kartica je poveznica, a naslov ostaje jedino mjesto s tekstom poveznice. */
+	.klik h3 a {
+		color: inherit;
+		text-decoration: none;
+	}
+	.klik h3 a::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 12px;
+	}
+	.klik:hover {
+		background: var(--nebo);
+		border-color: var(--more);
+	}
+	.klik:hover h3 a {
+		color: var(--more);
+	}
+	.klik h3 a:focus-visible {
+		outline: none;
+	}
+	.klik h3 a:focus-visible::after {
+		outline: 3px solid var(--more);
+		outline-offset: 2px;
+	}
+	.krug {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 8px;
+		color: var(--tinta) !important;
+		font-weight: 600;
+	}
+	.krug-strelica {
+		color: var(--more);
+	}
+</style>

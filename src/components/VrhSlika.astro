@@ -1,0 +1,487 @@
+---
+// Ukrasna ilustracija u plavom vrhu stranice, po vrsti stranice. Isti jezik kao na
+// naslovnici: papirnate kartice, mjerilo od 40 crtica, sati kao ćelije, sunce.
+// Čitač zaslona je preskače.
+import type { Slika } from '../lib/slike';
+
+interface Props {
+	vrsta: Slika;
+}
+const { vrsta } = Astro.props;
+
+// Mjerilo: 40 crtica u pet skupina po osam, od x, s `pune` ispunjenih i `nove` zelenih.
+const mjerilo = (x: number, y: number, pune: number, nove = 0, korak = 3.6, visina = 18) =>
+	Array.from({ length: 40 }, (_, i) => ({
+		x: x + i * korak + Math.floor(i / 8) * 4,
+		y,
+		y2: y + visina,
+		vrsta: i < pune ? 'puna' : i < pune + nove ? 'nova' : 'prazna',
+	}));
+---
+
+<svg class="slika" viewBox="0 0 360 220" aria-hidden="true">
+	{
+		vrsta !== 'lista' && vrsta !== 'osoba' && (
+			<>
+				<circle class="sunce-sjaj" cx="320" cy="38" r="50" />
+				<circle class="sunce" cx="320" cy="38" r="24" />
+			</>
+		)
+	}
+
+	{
+		vrsta === 'natjecaji' && (
+			<>
+				<g transform="rotate(9 230 70)">
+					<rect class="papir" x="128" y="26" width="196" height="88" rx="14" />
+					<rect class="pruga" x="146" y="42" width="104" height="10" rx="5" />
+					{mjerilo(146, 82, 10).map((c) => <line class={c.vrsta} x1={c.x} x2={c.x} y1={c.y} y2={c.y2} />)}
+				</g>
+				<g transform="rotate(-5 196 110)">
+					<rect class="papir" x="96" y="64" width="196" height="88" rx="14" />
+					<rect class="pruga" x="114" y="80" width="88" height="10" rx="5" />
+					<rect class="pruga slabo" x="114" y="96" width="56" height="8" rx="4" />
+					{mjerilo(114, 120, 22).map((c) => <line class={c.vrsta} x1={c.x} x2={c.x} y1={c.y} y2={c.y2} />)}
+				</g>
+				<g class="sjena" transform="rotate(2 160 156)">
+					<rect class="papir" x="58" y="108" width="204" height="92" rx="14" />
+					<rect class="pruga tamno" x="76" y="124" width="112" height="11" rx="5.5" />
+					<rect class="pruga slabo" x="76" y="141" width="70" height="8" rx="4" />
+					{mjerilo(76, 164, 40).map((c) => <line class={c.vrsta} x1={c.x} x2={c.x} y1={c.y} y2={c.y2} />)}
+				</g>
+				<g transform="translate(298 160)">
+					<circle class="znak-sunce" r="28" />
+					<path class="kazaljka" d="M0 0V-15M0 0l11 7" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'natjecaj' && (
+			<>
+				<g class="sjena" transform="rotate(-4 180 110)">
+					<rect class="papir" x="62" y="50" width="236" height="122" rx="16" />
+					<rect class="pruga tamno" x="84" y="72" width="132" height="13" rx="6.5" />
+					<rect class="pruga slabo" x="84" y="94" width="90" height="9" rx="4.5" />
+					<rect class="pruga slabo" x="84" y="110" width="116" height="9" rx="4.5" />
+					{mjerilo(84, 136, 22, 0, 4.4, 20).map((c) => <line class={c.vrsta} x1={c.x} x2={c.x} y1={c.y} y2={c.y2} />)}
+				</g>
+				<path class="ruta" d="M74 196 C 120 200, 150 186, 170 172" />
+				<g class="sjena" transform="translate(52 196)">
+					<circle class="papir" r="18" />
+					<path class="pin" d="M0 -11a7 7 0 0 1 7 7c0 5-7 11-7 11s-7-6-7-11a7 7 0 0 1 7-7z" />
+					<circle class="papir" cy="-4" r="2.6" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'sati' && (
+			<>
+				<g class="sjena" transform="rotate(-6 96 66)">
+					<rect class="papir" x="30" y="28" width="132" height="76" rx="12" />
+					{[0, 1, 2, 3].map((d) =>
+						[0, 1].map((r) => (
+							<rect class:list={[d === 2 && r === 1 ? 'novo' : d === 1 && r === 0 ? 'prazno' : 'staro']} x={44 + d * 28} y={44 + r * 24} width="22" height="16" rx="4" />
+						)),
+					)}
+				</g>
+				<path class="ruta" d="M24 190 C 90 190, 96 132, 160 128 S 250 92, 330 96" />
+				<circle class="cvor slabo" cx="34" cy="190" r="9" />
+				<circle class="cvor" cx="110" cy="164" r="10" />
+				<circle class="cvor svijetlo" cx="182" cy="122" r="11" />
+				<circle class="cvor suncano" cx="256" cy="104" r="12" />
+				<circle class="cvor zeleno" cx="330" cy="96" r="16" />
+				<path class="kvacica" d="M322 96l6 6 10-12" />
+			</>
+		)
+	}
+
+	{
+		vrsta === 'lista' && (
+			<>
+				<g class="sjena" transform="rotate(-3 180 112)">
+					<rect class="papir" x="66" y="22" width="236" height="178" rx="16" />
+					{[0, 1, 2, 3, 4].map((i) => (
+						<>
+							<circle class:list={['mjesto', { prvo: i === 0 }]} cx="94" cy={52 + i * 32} r="11" />
+							<text class="broj" x="94" y={56.5 + i * 32}>
+								{i + 1}
+							</text>
+							<rect class="pruga" x="114" y={47 + i * 32} width={78 - (i % 2) * 14} height="10" rx="5" />
+							<rect class:list={[i < 3 ? 'staro' : 'novo']} x="204" y={45 + i * 32} width={78 - i * 12} height="14" rx="7" />
+						</>
+					))}
+				</g>
+				<g transform="translate(312 52)">
+					<path class="vrpca" d="M-12 14l-6 26 18-8 18 8-6-26z" />
+					<circle class="znak-sunce" r="26" />
+					<path class="zvijezda" d="M0-14l4.1 8.3 9.2 1.3-6.6 6.5 1.6 9.1L0 7l-8.3 4.2 1.6-9.1-6.6-6.5 9.2-1.3z" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'osoba' && (
+			<>
+				<g class="sjena" transform="rotate(-3 170 112)">
+					<rect class="papir" x="52" y="36" width="236" height="150" rx="16" />
+					<circle class="pruga" cx="100" cy="88" r="28" />
+					<circle class="staro" cx="100" cy="80" r="10" />
+					<path class="staro" d="M80 108a20 16 0 0 1 40 0z" />
+					<rect class="pruga tamno" x="142" y="70" width="112" height="12" rx="6" />
+					<rect class="pruga slabo" x="142" y="92" width="74" height="9" rx="4.5" />
+					{mjerilo(76, 140, 14, 8, 4.6, 20).map((c) => <line class={c.vrsta} x1={c.x} x2={c.x} y1={c.y} y2={c.y2} />)}
+				</g>
+				<g transform="translate(306 54)">
+					<circle class="znak-sunce" r="28" />
+					<path class="zvijezda" d="M0-14l4.1 8.3 9.2 1.3-6.6 6.5 1.6 9.1L0 7l-8.3 4.2 1.6-9.1-6.6-6.5 9.2-1.3z" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'bodovi' && (
+			<>
+				<g class="sjena" transform="rotate(3 168 112)">
+					<rect class="papir" x="70" y="22" width="196" height="180" rx="16" />
+					{[0, 1, 2, 3].map((i) => (
+						<>
+							<rect class="pruga" x="90" y={44 + i * 30} width={84 - (i % 2) * 18} height="10" rx="5" />
+							<rect class:list={[i === 2 ? 'novo' : 'staro']} x="206" y={41 + i * 30} width="40" height="16" rx="8" />
+						</>
+					))}
+					<path class="crta-tamna" d="M90 166h156" />
+					<rect class="pruga tamno" x="90" y="176" width="64" height="12" rx="6" />
+					<rect class="staro" x="194" y="172" width="52" height="20" rx="10" />
+				</g>
+				<g transform="translate(300 166)">
+					<circle class="znak-sunce" r="28" />
+					<path class="kazaljka" d="M-10 0h20M0-10v20" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'zamjene' && (
+			<>
+				<path class="obala" d="M34 198 C 70 174, 128 184, 184 176 S 296 168, 330 194 C 250 208, 112 212, 34 198 Z" />
+				<path class="ruta puna-ruta" d="M86 120 C 100 70, 150 58, 176 66" />
+				<path class="strelica-vrh" d="M168 58l10 8-12 4" />
+				<path class="ruta puna-ruta" d="M212 72 C 256 74, 286 92, 286 112" />
+				<path class="strelica-vrh" d="M278 106l8 10 6-12" />
+				<path class="ruta puna-ruta" d="M268 150 C 220 182, 140 182, 104 152" />
+				<path class="strelica-vrh" d="M112 146l-10 6 12 6" />
+				{[
+					[84, 136],
+					[194, 70],
+					[286, 132],
+				].map(([x, y]) => (
+					<g class="sjena" transform={`translate(${x} ${y})`}>
+						<circle class="papir" r="20" />
+						<path class="pin" d="M0 -12a8 8 0 0 1 8 8c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 8-8z" />
+						<circle class="papir" cy="-4" r="3" />
+					</g>
+				))}
+			</>
+		)
+	}
+
+	{
+		vrsta === 'povjerenstvo' && (
+			<>
+				<g class="sjena" transform="rotate(9 232 110)">
+					<rect class="papir" x="170" y="34" width="132" height="160" rx="12" />
+					{[0, 1, 2, 3, 4].map((i) => (
+						<rect class="pruga slabo" x="188" y={58 + i * 20} width={92 - (i % 3) * 16} height="8" rx="4" />
+					))}
+				</g>
+				<g class="sjena" transform="rotate(-5 152 118)">
+					<rect class="papir" x="82" y="36" width="140" height="166" rx="12" />
+					<rect class="pruga tamno" x="100" y="58" width="80" height="11" rx="5.5" />
+					{[0, 1, 2].map((i) => (
+						<rect class="pruga" x="100" y={82 + i * 18} width={100 - i * 18} height="8" rx="4" />
+					))}
+					<path class="potpis" d="M102 168c10-14 16 6 26-6s14 8 24-4" />
+				</g>
+				<g transform="translate(226 160) rotate(-14)">
+					<circle class="zeleno-puno" r="32" />
+					<circle class="pecat" r="25" />
+					<path class="kvacica" d="M-11 0l7 7 15-16" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'prijava' && (
+			<>
+				<g class="sjena" transform="rotate(-5 168 120)">
+					<rect class="papir" x="58" y="56" width="216" height="132" rx="16" />
+					<circle class="pruga" cx="104" cy="112" r="26" />
+					<circle class="staro" cx="104" cy="104" r="9" />
+					<path class="staro" d="M86 130a18 15 0 0 1 36 0z" />
+					<rect class="pruga tamno" x="144" y="90" width="104" height="12" rx="6" />
+					<rect class="pruga slabo" x="144" y="112" width="70" height="9" rx="4.5" />
+					<rect class="staro" x="144" y="148" width="30" height="14" rx="7" />
+					<rect class="novo" x="180" y="148" width="30" height="14" rx="7" />
+					<rect class="suncano-puno" x="216" y="148" width="30" height="14" rx="7" />
+				</g>
+				<g transform="translate(288 84) rotate(38)">
+					<circle class="kljuc" r="17" />
+					<path class="kljuc" d="M0 17v50M0 50h12M0 61h9" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'unos' && (
+			<>
+				<g class="sjena" transform="rotate(-3 172 112)">
+					<rect class="papir" x="72" y="22" width="200" height="184" rx="16" />
+					{[0, 1, 2].map((i) => (
+						<>
+							<rect class="pruga slabo" x="92" y={42 + i * 44} width={60 + i * 10} height="8" rx="4" />
+							<rect class="polje" x="92" y={54 + i * 44} width="160" height="20" rx="6" />
+						</>
+					))}
+					<rect class="staro" x="92" y="176" width="74" height="18" rx="9" />
+				</g>
+				<g transform="translate(286 150) rotate(38)">
+					<rect class="suncano-puno" x="-9" y="-56" width="18" height="60" rx="3" />
+					<path class="staro" d="M-9 4h18L0 22z" />
+					<rect class="pruga" x="-9" y="-62" width="18" height="8" rx="2" />
+				</g>
+			</>
+		)
+	}
+
+	{
+		vrsta === 'specifikacija' && (
+			<>
+				<g class="sjena">
+					<path class="papir" d="M178 52 C 140 40, 96 40, 56 50 V 190 C 96 180, 140 180, 178 192Z" />
+					<path class="papir" d="M182 52 C 220 40, 264 40, 304 50 V 190 C 264 180, 220 180, 182 192Z" />
+				</g>
+				<path class="crta-tamna" d="M180 52V192" />
+				{[0, 1, 2, 3, 4].map((i) => (
+					<rect class="pruga slabo" x="74" y={70 + i * 22} width={86 - (i % 2) * 22} height="8" rx="4" />
+				))}
+				<path class="veza" d="M214 86 L 262 86 M 238 86 L 238 132 M 214 132 L 262 132 M 238 132 L 238 162" />
+				<circle class="staro" cx="214" cy="86" r="9" />
+				<circle class="staro" cx="262" cy="86" r="9" />
+				<circle class="novo" cx="238" cy="132" r="10" />
+				<circle class="suncano-puno" cx="238" cy="166" r="8" />
+			</>
+		)
+	}
+
+	{
+		vrsta === 'stit' && (
+			<>
+				<path class="papir sjena" d="M170 30 L 254 58 V 112 C 254 160, 214 188, 170 204 C 126 188, 86 160, 86 112 V 58 Z" />
+				<path class="okvir" d="M140 112v-14a30 30 0 0 1 60 0v14" />
+				<rect class="staro" x="128" y="110" width="84" height="62" rx="10" />
+				<circle class="suncano-puno" cx="170" cy="136" r="8" />
+				<rect class="suncano-puno" x="166" y="140" width="8" height="18" rx="3" />
+			</>
+		)
+	}
+
+	<circle class="iskra" cx="24" cy="40" r="3.5" />
+	<circle class="iskra" cx="344" cy="120" r="3" />
+</svg>
+
+<style>
+	.slika {
+		--karta: #ffffff;
+		--linija: #d3deee;
+		--staro: #0e3f8c;
+		--novo: #1f9d63;
+		--sunce-boja: #f6c453;
+		display: block;
+		width: 100%;
+		max-width: 360px;
+		height: auto;
+		overflow: visible;
+	}
+	@media (prefers-color-scheme: dark) {
+		.slika {
+			--karta: #dfe8f5;
+			--linija: #bfcde3;
+		}
+	}
+	.sjena {
+		filter: drop-shadow(0 10px 14px rgb(4 18 43 / 0.35));
+	}
+	.papir {
+		fill: var(--karta);
+	}
+	.pruga {
+		fill: var(--linija);
+	}
+	.pruga.slabo {
+		fill: var(--linija);
+		opacity: 0.75;
+	}
+	.pruga.tamno {
+		fill: #8ea6c9;
+	}
+	.staro {
+		fill: var(--staro);
+	}
+	.novo {
+		fill: var(--novo);
+	}
+	.prazno {
+		fill: var(--linija);
+	}
+	.suncano-puno,
+	.znak-sunce {
+		fill: var(--sunce-boja);
+	}
+	.sunce {
+		fill: var(--sunce-boja);
+	}
+	.sunce-sjaj {
+		fill: var(--sunce-boja);
+		opacity: 0.16;
+	}
+	.iskra {
+		fill: var(--sunce-boja);
+		opacity: 0.7;
+	}
+	.puna,
+	.nova,
+	.prazna {
+		stroke-width: 2;
+	}
+	.puna {
+		stroke: var(--staro);
+	}
+	.nova {
+		stroke: var(--novo);
+	}
+	.prazna {
+		stroke: var(--linija);
+	}
+	.kazaljka {
+		fill: none;
+		stroke: #0f2342;
+		stroke-width: 3.5;
+		stroke-linecap: round;
+	}
+	.ruta {
+		fill: none;
+		stroke: var(--sunce-boja);
+		stroke-width: 3;
+		stroke-linecap: round;
+		stroke-dasharray: 0.1 9;
+	}
+	.puna-ruta {
+		stroke-dasharray: none;
+		opacity: 0.9;
+	}
+	.strelica-vrh {
+		fill: none;
+		stroke: var(--sunce-boja);
+		stroke-width: 3;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.pin {
+		fill: var(--staro);
+	}
+	.cvor {
+		fill: #ffffff;
+		stroke: rgb(255 255 255 / 0.35);
+		stroke-width: 6;
+	}
+	.cvor.slabo {
+		fill: rgb(255 255 255 / 0.4);
+	}
+	.cvor.svijetlo {
+		fill: #93b9ff;
+	}
+	.cvor.suncano {
+		fill: var(--sunce-boja);
+	}
+	.cvor.zeleno {
+		fill: var(--novo);
+	}
+	.kvacica {
+		fill: none;
+		stroke: #ffffff;
+		stroke-width: 4;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.mjesto {
+		fill: var(--linija);
+	}
+	.mjesto.prvo {
+		fill: var(--sunce-boja);
+	}
+	.broj {
+		font: 700 11px var(--sans);
+		fill: #0f2342;
+		text-anchor: middle;
+	}
+	.vrpca {
+		fill: #93b9ff;
+	}
+	.zvijezda {
+		fill: #0f2342;
+	}
+	.crta-tamna {
+		fill: none;
+		stroke: #8ea6c9;
+		stroke-width: 2;
+	}
+	.obala {
+		fill: rgb(255 255 255 / 0.1);
+	}
+	.potpis {
+		fill: none;
+		stroke: var(--staro);
+		stroke-width: 2.5;
+		stroke-linecap: round;
+	}
+	.zeleno-puno {
+		fill: var(--novo);
+	}
+	.pecat {
+		fill: none;
+		stroke: rgb(255 255 255 / 0.55);
+		stroke-width: 2;
+		stroke-dasharray: 3 4;
+	}
+	.kljuc {
+		fill: none;
+		stroke: var(--sunce-boja);
+		stroke-width: 8;
+		stroke-linecap: round;
+	}
+	.polje {
+		fill: #ffffff;
+		stroke: var(--linija);
+		stroke-width: 2;
+	}
+	.veza {
+		fill: none;
+		stroke: #8ea6c9;
+		stroke-width: 2.5;
+	}
+	.okvir {
+		fill: none;
+		stroke: var(--staro);
+		stroke-width: 10;
+		stroke-linecap: round;
+	}
+</style>

@@ -5,8 +5,10 @@ import SatiMjerilo from './SatiMjerilo.astro';
 interface Props {
 	oglas: Oglas;
 	sada: string;
+	/** Razina naslova retka: h2 na popisu natječaja, h3 kad je popis dio veće stranice. */
+	naslov?: 'h2' | 'h3';
 }
-const { oglas: o, sada } = Astro.props;
+const { oglas: o, sada, naslov: Naslov = 'h2' } = Astro.props;
 const dana = danaDoRoka(o.rok, sada);
 const istekao = dana < 0;
 const hitno = !istekao && dana <= 2;
@@ -16,11 +18,15 @@ const preostalo = dana === 0 ? 'Danas zadnji dan' : `Još ${dana} ${oblik(dana, 
 
 <li class:list={['redak', { istekao }]}>
 	<div class="glavno">
-		<h2 class="predmet">
-			<a href={`/oglasi/${o.id}`}>{o.predmet}</a>
+		<Naslov class="predmet">
+			<a href={o.fiktivna === 1 ? o.izvor_url : `/oglasi/${o.id}`}>{o.predmet}</a>
 			{o.izvrsitelja > 1 && <span class="mjesta">{o.izvrsitelja} mjesta</span>}
-		</h2>
-		<p class="skola">{o.skola}, {o.mjesto_rada ?? o.mjesto}</p>
+			{o.fiktivna === 1 && <span class="oznaka pazi testno">testni podatak</span>}
+		</Naslov>
+		<p class="skola">
+			{o.skola}, {o.mjesto_rada ?? o.mjesto}
+			{o.sati_id !== null && ` · ${o.prijava} ${oblik(o.prijava, 'prijava', 'prijave', 'prijava')}`}
+		</p>
 	</div>
 	<div class="sati">
 		<SatiMjerilo sati={o.sati_tjedno} />
@@ -89,6 +95,12 @@ const preostalo = dana === 0 ? 'Danas zadnji dan' : `Još ${dana} ${oblik(dana, 
 		color: var(--siva);
 		white-space: nowrap;
 		margin-left: 6px;
+	}
+	.testno {
+		position: relative;
+		margin-left: 6px;
+		font-family: var(--sans);
+		vertical-align: middle;
 	}
 	.skola {
 		margin: 2px 0 0;

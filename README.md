@@ -7,8 +7,8 @@ susjednom, privatnom repou `e-satnica-sastanci`.
 
 Kod je otvoren od prvog dana (MIT, vidi [LICENSE](LICENSE)): kriteriji
 bodovanja i raspodjele moraju biti javno provjerljivi, inače je transparentnost
-samo privid. Javni su kod i specifikacija; podaci korisnika i komentari tima
-ostaju u bazi iza prijave Certilijom.
+samo privid. Javni su kod, specifikacija i unosi tima uz nju (s imenom autora);
+ostali podaci korisnika ostaju u bazi iza prijave.
 
 ## Tko vodi
 
@@ -29,9 +29,18 @@ git remote set-url --add --push origin git@github.com:domovinatv/e-satnica.git
 git remote set-url --add --push origin git@github.com:most-hrvatska/e-satnica.git
 ```
 
+## Javni prototip
+
+Do puštanja u rad sve se čita bez prijave: popis natječaja (`/oglasi`), specifikacija
+i prototip na izmišljenoj bazi jedne županije (lista, raspodjela, zamjene, slobodni
+sati, povjerenstvo). Unos se isprobava kroz probnu prijavu u ulogu (`/probna-prijava`),
+koja radi samo uz `PROBNA_PRIJAVA=1` i na produkciji je isključena. Što je napravljeno,
+što je pojednostavljeno i kako se upisuju podaci: [docs/prototip.md](docs/prototip.md).
+
 ## Specifikacija i feedback tima
 
 - Sadržaj specifikacije: `src/content/specifikacija/*.md` (jedna datoteka = jedna sekcija).
+- `/specifikacija` se čita bez prijave, zajedno s unosima tima. Upis traži prijavu.
 - Tim na `/specifikacija/<sekcija>` upisuje komentare, zahtjeve, pitanja i odgovore u D1 tablicu `stavke`.
 - Prihvaćene stavke skupljaju se u `paketi`; jedan paket = jedna iteracija razvoja.
 - Čitanje i trijaža: `scripts/stavke.sh` (vidi `--help`).
@@ -43,13 +52,15 @@ Tko se prijavio, s koliko ključeva i koje prijave nisu uspjele: `scripts/prijav
 
 ```sh
 npm install
-printf 'SESIJA_KLJUC=lokalni-kljuc\nAPP_ORIGIN=http://localhost:4321\n' > .dev.vars
+printf 'SESIJA_KLJUC=lokalni-kljuc\nAPP_ORIGIN=http://localhost:4321\nPROBNA_PRIJAVA=1\n' > .dev.vars
 npx wrangler d1 migrations apply e-satnica --local
+npx wrangler d1 execute e-satnica --local --file scripts/oglasi-pocetni.sql
+npm run db:fiktivno
 npm run dev
 ```
 
-Bodovanje (`src/lib/bodovanje/`) je čista funkcija bez I/O, s testovima:
-`npm test` (Node `--test`, bez dodatnih paketa). Bodovna tablica na
+Bodovanje, raspodjela, zamjene i stroj stanja slobodnih sati (`src/lib/`) su čiste
+funkcije bez I/O, s testovima: `npm test` (Node `--test`, bez dodatnih paketa). Bodovna tablica na
 `/specifikacija/03-kriteriji-bodovanja` prikazuje se iz istog koda.
 Dijagrami u specifikaciji su ```` ```mermaid ```` blokovi; crta ih preglednik.
 

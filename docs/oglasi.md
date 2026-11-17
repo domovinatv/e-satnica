@@ -29,6 +29,14 @@ npx wrangler d1 migrations apply e-satnica --local
 npx wrangler d1 execute e-satnica --local --file scripts/oglasi-pocetni.sql
 ```
 
+## Testni natječaji
+
+Uz stvarne natječaje popis pokazuje i izmišljene, iz prototipa
+([prototip.md](prototip.md)): sate koje je izmišljena škola prijavila u e-satnici, a
+nitko s liste ih nije mogao uzeti. Imaju `oglasi.sati_id`, njihova škola ima
+`skole.fiktivna = 1`, na popisu nose oznaku „testni podatak", a umjesto na dokument
+škole vode na životni put tih sati (`/sati/[oznaka]`).
+
 ## Što nedostaje
 
 - **Skenirani natječaji:** 23 od 84 dokumenta su slike bez teksta i nisu u popisu, od

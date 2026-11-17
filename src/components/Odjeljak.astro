@@ -1,0 +1,13 @@
+---
+// Odjeljak radne stranice: cilj poveznice iz kazala (RadniOkvir), s naslovom.
+interface Props {
+	id: string;
+	naslov: string;
+}
+const { id, naslov } = Astro.props;
+---
+
+<section class="odjeljak" id={id} tabindex="-1" aria-labelledby={`${id}-naslov`}>
+	<h2 id={`${id}-naslov`}>{naslov}</h2>
+	<slot />
+</section>

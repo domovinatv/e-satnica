@@ -1,4 +1,7 @@
 import { env } from 'cloudflare:workers';
+import { danas, datum, oblik } from './datumi.ts';
+
+export { danas, datum, oblik };
 
 export interface Oglas {
 	id: number;
@@ -21,6 +24,11 @@ export interface Oglas {
 	podrucje: 'priobalje' | 'otoci' | 'zagora';
 	zupanija: string;
 	web: string | null;
+	/** 1 = testni podatak: natječaj izmišljene škole iz prototipa, nastao iz sati u e-satnici. */
+	fiktivna: number;
+	sati_id: number | null;
+	/** Broj prijava kroz e-satnicu; samo za natječaje nastale iz sati u sustavu. */
+	prijava: number;
 }
 
 export const PODRUCJA = { priobalje: 'Priobalje', otoci: 'Otoci', zagora: 'Zagora' };
@@ -41,7 +49,8 @@ export interface Filteri {
 	poredak: keyof typeof POREDCI | '';
 }
 
-const UPIT = `SELECT o.*, s.naziv AS skola, s.mjesto, s.adresa, s.razina, s.podrucje, s.zupanija, s.web
+const UPIT = `SELECT o.*, s.naziv AS skola, s.mjesto, s.adresa, s.razina, s.podrucje, s.zupanija, s.web, s.fiktivna,
+		(SELECT count(*) FROM prijave_na_natjecaj p WHERE p.sati_id = o.sati_id) AS prijava
 	FROM oglasi o JOIN skole s ON s.id = o.skola_id
 	WHERE o.stanje = 'objavljen'`;
 
@@ -102,26 +111,8 @@ export function poredaj(oglasi: Oglas[], poredak: Filteri['poredak']): Oglas[] {
 	});
 }
 
-// Rokovi su kalendarski dani u Hrvatskoj, a Worker radi u UTC-u.
-export function danas(): string {
-	return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zagreb' }).format(new Date());
-}
-
 export function danaDoRoka(rok: string, sada: string): number {
 	return Math.round((Date.parse(rok) - Date.parse(sada)) / 86_400_000);
-}
-
-export function oblik(n: number, jedan: string, dva: string, pet: string): string {
-	const d = n % 10;
-	const s = n % 100;
-	if (d === 1 && s !== 11) return jedan;
-	if (d >= 2 && d <= 4 && (s < 12 || s > 14)) return dva;
-	return pet;
-}
-
-export function datum(iso: string, godina = false): string {
-	const [g, m, d] = iso.split('-').map(Number);
-	return godina ? `${d}. ${m}. ${g}.` : `${d}. ${m}.`;
 }
 
 export function opisSati(sati: number): string {

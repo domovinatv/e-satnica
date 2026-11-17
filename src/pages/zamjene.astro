@@ -1,0 +1,145 @@
+---
+import NemaBaze from '../components/NemaBaze.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { sati } from '../lib/datumi';
+import { ucitajPrototip, zamjene } from '../lib/prototip';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+const pregled = p ? zamjene(p) : null;
+---
+
+<Javno naslov="Zamjene">
+	<Vrh naslov="Zamjene" fiktivno slika="zamjene" />
+
+	{
+		!p || !pregled ? (
+			<NemaBaze />
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+
+
+				<h2 id="nadene">Pronađene</h2>
+				<ul class="kartice lanci">
+					{pregled.lanci.map((l) => (
+						<li class="kartica">
+							<h3>
+								{l.clanovi.length === 2 ? 'Par' : `Lanac od ${l.clanovi.length}`}: {l.clanovi[0].nastavnik.predmet}, {sati(l.clanovi[0].zaposlenje.sati)}
+							</h3>
+							<p>
+								{l.vrijedi ? (
+									<span class="oznaka dobro">Vrijedi: svi su potvrdili</span>
+								) : (
+									<span class="oznaka pazi">
+										Čeka potvrde: {l.potvrdili.size} od {l.clanovi.length}
+									</span>
+								)}
+							</p>
+							<ol class="clanovi">
+								{l.clanovi.map((c, i) => {
+									const kamo = l.clanovi[(i + 1) % l.clanovi.length].zaposlenje.skola;
+									return (
+										<li>
+											<a href={`/lista/${c.nastavnik.oznaka}`}>{c.nastavnik.punoIme}</a>
+											<span class="put">
+												{c.zaposlenje.skola.naziv}, {c.zaposlenje.skola.mjesto} → {kamo.naziv}, {kamo.mjesto}
+											</span>
+											<span class="sitno">{l.potvrdili.has(c.nastavnik.oznaka) ? 'Potvrđeno' : 'Čeka potvrdu'}</span>
+										</li>
+									);
+								})}
+							</ol>
+							{l.upozorenja.map((u) => (
+								<p class="napomena pazi">{u}</p>
+							))}
+						</li>
+					))}
+				</ul>
+
+				{pregled.ostvareni.length > 0 && (
+					<>
+						<h2 id="raspodjela">U raspodjeli</h2>
+						<Tablica id="raspodjela-naslov" naslov={`Zamjena na slobodno mjesto, ${p.ciklus.skolska_godina}`} skrivenNaslov stupci={['Osoba', 'Napušta', 'Dobiva', 'Mjesto preuzima']}>
+							{pregled.ostvareni.map((z) => {
+								const dobiva = z.nastavnik.dodjele.filter((d) => d.korak === 3);
+								const oslobodeno = p.sati.find((s) => s.izZaposlenja === z.zaposlenje);
+								return (
+									<tr>
+										<th scope="row">
+											<a href={`/lista/${z.nastavnik.oznaka}`}>{z.nastavnik.punoIme}</a>
+											<span class="manje">{z.nastavnik.predmet}</span>
+										</th>
+										<td>
+											{sati(z.zaposlenje.sati)}, {z.zaposlenje.skola.naziv}
+											<span class="manje">{z.zaposlenje.skola.mjesto}</span>
+										</td>
+										<td>
+											{dobiva.map((d) => (
+												<a href={`/sati/${d.sati.oznaka}`}>
+													{sati(d.koliko)}, {d.sati.skola.naziv}
+												</a>
+											))}
+											<span class="manje">{dobiva.map((d) => d.sati.skola.mjesto).join(', ')}</span>
+										</td>
+										<td>
+											{oslobodeno?.dodjele.map((d) => (
+												<a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>
+											))}
+											{oslobodeno && (
+												<span class="manje">
+													<a href={`/sati/${oslobodeno.oznaka}`}>{oslobodeno.oznaka}</a>
+												</span>
+											)}
+										</td>
+									</tr>
+								);
+							})}
+						</Tablica>
+					</>
+				)}
+
+				<h2 id="bez">Bez zamjene</h2>
+				<Tablica id="bez-naslov" naslov="Zahtjevi bez zamjene" skrivenNaslov stupci={['Osoba', 'Nudi', 'Želi u', 'Razlog']}>
+					{pregled.bez.map(({ zahtjev: z, razlog }) => (
+						<tr>
+							<th scope="row">
+								<a href={`/lista/${z.nastavnik.oznaka}`}>{z.nastavnik.punoIme}</a>
+								<span class="manje">{z.nastavnik.predmet}</span>
+							</th>
+							<td>
+								{sati(z.zaposlenje.sati)}, {z.zaposlenje.skola.naziv}
+								<span class="manje">{z.zaposlenje.skola.mjesto}</span>
+							</td>
+							<td>{z.zeli.join(', ')}</td>
+							<td>{razlog}</td>
+						</tr>
+					))}
+				</Tablica>
+
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.lanci {
+		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	}
+	.clanovi {
+		margin: 12px 0 0;
+		padding-left: 22px;
+	}
+	.clanovi li {
+		margin-bottom: 10px;
+	}
+	.clanovi .put,
+	.clanovi .sitno {
+		display: block;
+	}
+	.lanci .napomena {
+		margin: 12px 0 0;
+	}
+</style>

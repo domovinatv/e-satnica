@@ -5,11 +5,10 @@ export const prerender = false;
 
 // Javna stranica: na nju vode Registar resursa AAI@EduHr i Certilia. Svaka tvrdnja
 // ovdje mora odgovarati kodu (migrations/, src/lib/sesija.ts, src/pages/auth/).
-const AZURIRANO = '4. 11. 2026.';
+const AZURIRANO = '15. 11. 2026.';
 ---
 
-<Osnova naslov="Pravila privatnosti">
-	<h1>Pravila privatnosti</h1>
+<Osnova naslov="Pravila privatnosti" slika="stit">
 	<p class="sitno">Zadnja izmjena: {AZURIRANO}</p>
 
 	<h2>Tko obrađuje podatke</h2>
@@ -50,7 +49,7 @@ const AZURIRANO = '4. 11. 2026.';
 		<tbody>
 			<tr><td>ime i prezime</td><td>prikaz autora uz prijedloge i komentare, kako bi rad bio javan i provjerljiv</td></tr>
 			<tr><td>otisak OIB-a ili @skole.hr identifikatora</td><td>jedna osoba, jedan račun; prepoznavanje pri idućoj prijavi</td></tr>
-			<tr><td>tvoji prijedlozi i komentari</td><td>to je sadržaj usluge; vidljivi su prijavljenim korisnicima uz tvoje ime</td></tr>
+			<tr><td>tvoji prijedlozi i komentari</td><td>to je sadržaj usluge; javno su vidljivi uz tvoje ime, i bez prijave</td></tr>
 			<tr><td>vrijeme prve i zadnje prijave</td><td>rad računa i sigurnost</td></tr>
 			<tr>
 				<td>zapis prijave: vrijeme, ishod, trajanje, eventualna greška i <em>imena</em> primljenih atributa (ne njihove vrijednosti)</td>
@@ -68,12 +67,23 @@ const AZURIRANO = '4. 11. 2026.';
 		podatak (čl. 6(1)(a)).
 	</p>
 
+	<h2>Kalkulator bodova i prototip</h2>
+	<p>
+		Podaci koje upišeš u <a href="/kalkulator">kalkulator bodova</a> obrađuju se samo da bi se prikazao rezultat. Ne
+		spremaju se i ne povezuju s tvojim računom. Nastavnici i škole na stranicama prototipa (lista, slobodni sati, zamjene i
+		ostale) su izmišljeni i ne odnose se na stvarne osobe.
+	</p>
+
 	<h2>Kolačići</h2>
 	<p>Koristimo samo nužne kolačiće, bez analitike i oglasa:</p>
 	<ul>
 		<li><code>esatnica_sesija</code>: potpisana sesija, do 30 dana ili do odjave</li>
 		<li><code>esatnica_certilia_pokusaj</code>: pamti da je prijava Certilijom započeta, do 24 sata</li>
 		<li><code>esatnica_bez_kljuca</code>: pamti da si odbio ponudu pristupnog ključa, do 30 dana</li>
+		<li>
+			<code>esatnica_uloga</code>: pamti probnu ulogu iz prototipa (npr. ravnatelj izmišljene škole), do 24 sata; postoji
+			samo ako je probna prijava uključena i ne sadrži podatke o tebi
+		</li>
 	</ul>
 
 	<h2>Kome podaci idu</h2>

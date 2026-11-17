@@ -30,8 +30,7 @@ const poruka = spajanje ? (PORUKE[spajanje] ?? { tekst: `Spajanje nije uspjelo (
 const ovdje = encodeURIComponent('/racun');
 ---
 
-<Osnova naslov="Račun">
-	<h1>Račun i prijava</h1>
+<Osnova naslov="Račun" h1="Račun i prijava" slika="prijava">
 	{poruka && <p class:list={['kartica', { greska: poruka.greska }]}>{poruka.tekst}</p>}
 	{natrag && spajanje === 'ok' && <p><a href={natrag}>Nastavi gdje si stao/la →</a></p>}
 

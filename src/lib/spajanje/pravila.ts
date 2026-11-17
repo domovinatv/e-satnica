@@ -46,6 +46,8 @@ export function naredbeSpajanja(cilj: RacunZaSpajanje, izvor: RacunZaSpajanje): 
 		{ sql: 'UPDATE passkeyi SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
 		{ sql: 'UPDATE passkey_izazovi SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
 		{ sql: 'UPDATE identiteti SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
+		// Zatražene i potvrđene uloge u školi prelaze na spojeni račun.
+		{ sql: 'UPDATE uloge SET korisnik_id = ? WHERE korisnik_id = ?', params: [c, i] },
 		// Podatak koji imaju oba računa ostaje onaj s cilja.
 		{
 			sql: `INSERT OR IGNORE INTO korisnik_podaci (korisnik_id, podatak, vrijednost, dohvaceno_at)

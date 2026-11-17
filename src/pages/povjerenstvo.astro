@@ -1,0 +1,128 @@
+---
+// Što povjerenstvo odlučuje: dokazi za kriterije i prigovori. Izjednačeni i nezbrinuti
+// višak vide se na listi, uz osobu na koju se odnose; izmjene kriterija na /kriteriji.
+import NemaBaze from '../components/NemaBaze.astro';
+import Tablica from '../components/Tablica.astro';
+import Vrh from '../components/Vrh.astro';
+import Javno from '../layouts/Javno.astro';
+import { datum, datumIVrijeme } from '../lib/datumi';
+import { ucitajPrototip, type Dokaz } from '../lib/prototip';
+
+export const prerender = false;
+
+const p = await ucitajPrototip();
+
+const DOKAZ = { ceka: ['Čeka potvrdu', 'pazi'], potvrden: ['Potvrđen', 'dobro'], odbijen: ['Odbijen', 'lose'] } as const;
+const PRIGOVOR = {
+	zaprimljen: ['Zaprimljen, čeka odluku', 'pazi'],
+	usvojen: ['Usvojen', 'dobro'],
+	odbijen: ['Odbijen', 'lose'],
+	izvan_roka: ['Izvan roka', 'tiho'],
+} as const;
+const kriterij = (kljuc: string) => p?.tablica.kriteriji.find((k) => k.kljuc === kljuc)?.naziv ?? kljuc;
+
+const dokazi = p?.dokazi ?? [];
+const otvoreni = dokazi.filter((d) => d.stanje !== 'potvrden').sort((a, b) => Number(a.stanje !== 'ceka') - Number(b.stanje !== 'ceka') || b.predano.localeCompare(a.predano));
+const potvrdeni = dokazi.filter((d) => d.stanje === 'potvrden').sort((a, b) => a.nastavnik.oznaka.localeCompare(b.nastavnik.oznaka) || a.kriterij.localeCompare(b.kriterij));
+const prigovori = p?.prigovori ?? [];
+const zaIduci = (d: Dokaz) => p !== null && d.predano > p.ciklus.prigovori_do;
+---
+
+<Javno naslov="Povjerenstvo">
+	<Vrh naslov="Povjerenstvo" fiktivno slika="povjerenstvo" />
+
+	{
+		!p ? (
+			<NemaBaze />
+		) : (
+			<main id="sadrzaj" class="sirina sadrzaj">
+				<h2 id="dokazi">Dokazi</h2>
+				{otvoreni.length > 0 && (
+					<Tablica id="dokazi-naslov" naslov="Čekaju ili su odbijeni" stupci={['Osoba', 'Kriterij', 'Dokument', 'Predano', 'Stanje', 'Napomena']}>
+						{otvoreni.map((d) => (
+							<tr>
+								<th scope="row">
+									<a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>
+									<span class="manje">{d.nastavnik.oznaka}</span>
+								</th>
+								<td>{kriterij(d.kriterij)}</td>
+								<td>{d.dokument}</td>
+								<td class="broj">
+									{datum(d.predano, true)}
+									{zaIduci(d) && <span class="manje">za idući ciklus</span>}
+								</td>
+								<td>
+									<span class:list={['oznaka', DOKAZ[d.stanje][1]]}>{DOKAZ[d.stanje][0]}</span>
+									{d.odluceno && <span class="manje">{datum(d.odluceno, true)}</span>}
+								</td>
+								<td>{d.napomena}</td>
+							</tr>
+						))}
+					</Tablica>
+				)}
+				<details class="potvrdeni">
+					<summary>Potvrđeni ({potvrdeni.length})</summary>
+					<Tablica id="potvrdeni-naslov" naslov="Potvrđeni dokazi" skrivenNaslov stupci={['Osoba', 'Kriterij', 'Dokument', 'Potvrđeno']}>
+						{potvrdeni.map((d) => (
+							<tr>
+								<th scope="row">
+									<a href={`/lista/${d.nastavnik.oznaka}`}>{d.nastavnik.punoIme}</a>
+									<span class="manje">{d.nastavnik.oznaka}</span>
+								</th>
+								<td>{kriterij(d.kriterij)}</td>
+								<td>
+									{d.dokument}
+									{d.napomena && <span class="manje">{d.napomena}</span>}
+								</td>
+								<td class="broj">{d.odluceno && datum(d.odluceno, true)}</td>
+							</tr>
+						))}
+					</Tablica>
+				</details>
+
+				<h2 id="prigovori">Prigovori</h2>
+				<p>
+					Rok: {datumIVrijeme(p.ciklus.zakljucavanje)} – {datumIVrijeme(p.ciklus.prigovori_do)}
+				</p>
+				{prigovori.map((x) => (
+					<article class="kartica prigovor">
+						<p>
+							<span class:list={['oznaka', PRIGOVOR[x.stanje][1]]}>{PRIGOVOR[x.stanje][0]}</span>{' '}
+							<a href={`/lista/${x.nastavnik.oznaka}`}>{x.nastavnik.punoIme}</a>
+							<span class="sitno">
+								{' '}
+								· na {x.naSto === 'bodovi' ? 'bodove' : 'raspodjelu'} · podnesen {datumIVrijeme(x.podneseno)}
+							</span>
+						</p>
+						<p>{x.tekst}</p>
+						{x.odluka && (
+							<p>
+								<strong>{x.stanje === 'zaprimljen' ? 'Stanje:' : 'Odluka:'}</strong> {x.odluka}
+								{x.odluceno && <span class="sitno"> ({datumIVrijeme(x.odluceno)})</span>}
+							</p>
+						)}
+					</article>
+				))}
+
+				<p>
+					<a href="/kriteriji">Kriteriji</a> · <a href="/uvoz">Uvoz natječaja</a>
+				</p>
+			</main>
+		)
+	}
+</Javno>
+
+<style>
+	.prigovor {
+		max-width: 760px;
+		margin: 12px 0;
+	}
+	.potvrdeni {
+		margin: 16px 0 8px;
+	}
+	.potvrdeni summary {
+		cursor: pointer;
+		font-weight: 600;
+		padding: 8px 0;
+	}
+</style>

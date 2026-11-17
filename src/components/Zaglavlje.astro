@@ -1,0 +1,455 @@
+---
+// Zaglavlje svih stranica: znak i glavna navigacija. Jedan popis poveznica služi i
+// uskom i širokom zaslonu: dok ne stane u red, otvara se gumbom kao popover; kad
+// stane, skripta ga pokaže u redu. Bez skripte ostaje gumb s popoverom.
+//
+// Stranice povjerenstva i tima (lista, dokazi i prigovori, specifikacija) nisu u glavnom redu, nego u
+// podizborniku „Admin". Na širokom zaslonu on je popover ispod gumba, na uskom
+// ugniježđen popis koji se otvara klikom.
+import { probnaPrijavaUkljucena } from '../lib/uloga';
+
+const STAVKE = [
+	{ href: '/oglasi', tekst: 'Natječaji' },
+	{ href: '/sati', tekst: 'Slobodni sati' },
+	{ href: '/zamjene', tekst: 'Zamjene' },
+];
+const ADMIN = [
+	{ href: '/lista', tekst: 'Lista' },
+	{ href: '/povjerenstvo', tekst: 'Povjerenstvo' },
+	{ href: '/kriteriji', tekst: 'Kriteriji' },
+	{ href: '/uvoz', tekst: 'Uvoz natječaja' },
+	{ href: '/specifikacija', tekst: 'Specifikacija' },
+];
+const put = Astro.url.pathname.replace(/\/$/, '') || '/';
+// Točna stranica je „page"; podstranica (npr. /lista/N-001) samo označava svoj dio.
+const trenutna = (href: string) => (put === href ? 'page' : put.startsWith(`${href}/`) ? 'true' : undefined);
+const uAdminu = ADMIN.some((s) => trenutna(s.href));
+const ime = Astro.locals.ime;
+// Unos: uz ulogu (probnu ili potvrđenu) „Moj unos"; prijavljenom bez uloge zahtjev za
+// ulogu; inače probna prijava, samo kad je uključena.
+const proba = Astro.locals.uloga
+	? { href: '/moje', tekst: 'Moj unos' }
+	: ime
+		? { href: '/uloga', tekst: 'Uloga' }
+		: probnaPrijavaUkljucena()
+			? { href: '/probna-prijava', tekst: 'Probna prijava' }
+			: null;
+---
+
+<header class="zaglavlje">
+	<div class="red">
+		<a class="znak" href="/" aria-current={put === '/' ? 'page' : undefined}>e-satnica</a>
+		<nav aria-label="Glavna navigacija">
+			<button class="izbornik-gumb" type="button" popovertarget="izbornik" popovertargetaction="toggle" aria-controls="izbornik">
+				<svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14"><path d="M0 1h18M0 7h18M0 13h18" stroke="currentColor" stroke-width="2"></path></svg>
+				<span>Izbornik</span>
+			</button>
+			<ul id="izbornik" class="izbornik" popover="auto">
+				{
+					STAVKE.map((s) => (
+						<li>
+							<a href={s.href} aria-current={trenutna(s.href)}>
+								{s.tekst}
+							</a>
+						</li>
+					))
+				}
+				<li class="admin">
+					<button
+						class:list={['admin-gumb', { aktivan: uAdminu }]}
+						type="button"
+						aria-expanded="false"
+						aria-controls="admin-izbornik"
+						popovertarget="admin-izbornik"
+					>
+						Admin
+						<svg aria-hidden="true" width="12" height="8" viewBox="0 0 12 8"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6"></path></svg>
+					</button>
+					<ul id="admin-izbornik" class="admin-popis">
+						{
+							ADMIN.map((s) => (
+								<li>
+									<a href={s.href} aria-current={trenutna(s.href)}>
+										{s.tekst}
+									</a>
+								</li>
+							))
+						}
+					</ul>
+				</li>
+				{
+					proba && (
+						<li class="odvojeno">
+							<a href={proba.href} aria-current={trenutna(proba.href)}>
+								{proba.tekst}
+							</a>
+						</li>
+					)
+				}
+				{
+					ime ? (
+						<>
+							<li class:list={{ odvojeno: !proba }}>
+								<a href="/racun" aria-current={trenutna('/racun')}>
+									{ime}
+								</a>
+							</li>
+							<li>
+								<form method="post" action="/odjava">
+									<button type="submit" class="odjava">
+										Odjava
+									</button>
+								</form>
+							</li>
+						</>
+					) : (
+						<li class:list={{ odvojeno: !proba }}>
+							<a href="/prijava" aria-current={trenutna('/prijava')}>
+								Prijava
+							</a>
+						</li>
+					)
+				}
+			</ul>
+		</nav>
+	</div>
+</header>
+
+<script>
+	// Popover još nije u svim preglednicima koje podržavamo; nadomjestak se učitava samo gdje ga nema.
+	if (!Object.hasOwn(HTMLElement.prototype, 'popover')) import('@oddbird/popover-polyfill');
+
+	const zaglavlje = document.querySelector<HTMLElement>('.zaglavlje');
+	const red = zaglavlje?.querySelector<HTMLElement>('.red');
+	const izbornik = zaglavlje?.querySelector<HTMLElement>('.izbornik');
+	const admin = zaglavlje?.querySelector<HTMLButtonElement>('.admin-gumb');
+	const adminPopis = zaglavlje?.querySelector<HTMLElement>('#admin-izbornik');
+	const otvoren = (el: HTMLElement) => el.matches(':is(:popover-open, .\\:popover-open)');
+
+	if (zaglavlje && red && izbornik && admin && adminPopis) {
+		const adminStavka = admin.closest('li')!;
+
+		// Preglednici bez sidrenja (position-area) popover stavljaju na sredinu zaslona,
+		// pa ga ovdje ručno smjestimo ispod gumba, ili iznad ako dolje nema mjesta.
+		const smjestiAdmin = () => {
+			if (CSS.supports('position-area', 'block-end') || !otvoren(adminPopis)) return;
+			const gumb = admin.getBoundingClientRect();
+			const popis = adminPopis.getBoundingClientRect();
+			let gore = gumb.bottom + 8;
+			if (gore + popis.height > innerHeight) gore = Math.max(0, gumb.top - 8 - popis.height);
+			const lijevo = Math.min(Math.max(0, gumb.left), Math.max(0, innerWidth - popis.width));
+			adminPopis.style.top = `${gore}px`;
+			adminPopis.style.left = `${lijevo}px`;
+		};
+
+		// Široko: podizbornik je popover koji otvara popovertarget. Usko: ugniježđen
+		// popis koji klik otvara i zatvara. Atributi, a ne svojstva, zbog nadomjestka.
+		const uskladiAdmin = (siroko: boolean) => {
+			if (otvoren(adminPopis)) adminPopis.hidePopover();
+			if (siroko) adminPopis.setAttribute('popover', 'auto');
+			else adminPopis.removeAttribute('popover');
+			adminPopis.hidden = !siroko;
+			adminPopis.style.removeProperty('top');
+			adminPopis.style.removeProperty('left');
+			admin.setAttribute('aria-expanded', 'false');
+		};
+
+		admin.addEventListener('click', () => {
+			if (adminPopis.hasAttribute('popover')) return;
+			const otvori = adminPopis.hidden;
+			adminPopis.hidden = !otvori;
+			admin.setAttribute('aria-expanded', String(otvori));
+		});
+		adminPopis.addEventListener('toggle', (e) => {
+			const novo = (e as ToggleEvent).newState === 'open';
+			admin.setAttribute('aria-expanded', String(novo));
+			if (novo) smjestiAdmin();
+		});
+		// Tabulatorom izvan stavke Admin zatvara se i podizbornik.
+		adminStavka.addEventListener('focusout', (e) => {
+			const kamo = e.relatedTarget;
+			if (kamo instanceof Node && !adminStavka.contains(kamo) && adminPopis.hasAttribute('popover') && otvoren(adminPopis)) adminPopis.hidePopover();
+		});
+		addEventListener('resize', smjestiAdmin);
+
+		let izmjerenaSirina = 0;
+		let bilo: boolean | undefined;
+		// Nema zadane širine prijeloma: popis je u redu dok god stane, pa se prijelom
+		// sam pomakne kad se doda poveznica ili poveća tekst.
+		const uskladi = () => {
+			const siroko = zaglavlje.classList.contains('siroko');
+			const sirina = zaglavlje.clientWidth;
+			// Dok je skupljeno, mjeri ponovno tek kad zaglavlje naraste; inače raspored treperi.
+			if (!siroko && sirina <= izmjerenaSirina) return;
+			izmjerenaSirina = sirina;
+			// Otvoren popover nije u redu zaglavlja, pa bi mjerenje bilo krivo: zatvori ga,
+			// izmjeri i otvori ponovno ako popis i dalje ne stane.
+			const bioOtvoren = otvoren(izbornik);
+			if (bioOtvoren) izbornik.hidePopover();
+			zaglavlje.classList.add('siroko');
+			const stane = red.scrollWidth <= red.clientWidth;
+			zaglavlje.classList.toggle('siroko', stane);
+			if (stane) izbornik.removeAttribute('popover');
+			else izbornik.setAttribute('popover', 'auto');
+			if (stane !== bilo) uskladiAdmin(stane);
+			bilo = stane;
+			if (!stane && bioOtvoren) izbornik.showPopover();
+		};
+		const promatrac = new ResizeObserver(uskladi);
+		promatrac.observe(zaglavlje);
+		promatrac.observe(izbornik);
+		uskladi();
+	}
+</script>
+
+<style>
+	.zaglavlje {
+		color: var(--na-moru);
+		background: var(--pozadina-mora);
+	}
+	.red {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 24px;
+		max-width: 1120px;
+		min-height: 56px;
+		margin: 0 auto;
+		padding: 0 16px;
+	}
+	/* Djeca se ne smiju stiskati, inače se ne može izmjeriti stane li popis u red. */
+	.red > *,
+	.izbornik > li {
+		flex-shrink: 0;
+		white-space: nowrap;
+	}
+	.znak {
+		font-family: var(--serif);
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: var(--na-moru);
+		text-decoration: none;
+	}
+	.znak:focus-visible,
+	.izbornik-gumb:focus-visible {
+		outline-color: var(--na-moru);
+	}
+
+	.izbornik-gumb {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 44px;
+		margin: 0;
+		padding: 0 12px;
+		font: inherit;
+		font-weight: 600;
+		color: var(--na-moru);
+		background: transparent;
+		border: 1px solid var(--na-moru-siva);
+		border-radius: 6px;
+		cursor: pointer;
+		anchor-name: --izbornik-gumb;
+	}
+
+	/* Skupljeno: popis je popover ispod gumba. */
+	.izbornik {
+		position: fixed;
+		inset: auto;
+		/* Preglednici bez anchor() zadržavaju ovu vrijednost, otprilike visinu zaglavlja. */
+		inset-block-start: 3.5rem;
+		inset-block-start: anchor(--izbornik-gumb bottom);
+		inset-inline-end: 1rem;
+		inline-size: min(80dvw, 22rem);
+		max-inline-size: calc(100dvw - 2rem);
+		block-size: fit-content;
+		max-block-size: calc(100dvh - 6rem);
+		margin: 0;
+		margin-block-start: 0.5rem;
+		padding: 8px;
+		overflow: auto;
+		list-style: none;
+		color: var(--tinta);
+		background: var(--papir);
+		border: 1px solid var(--crta);
+		border-radius: 8px;
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+	}
+	.izbornik a,
+	.odjava,
+	.admin-gumb {
+		display: block;
+		width: 100%;
+		min-height: 44px;
+		margin: 0;
+		padding: 10px 12px;
+		font: inherit;
+		text-align: start;
+		text-decoration: none;
+		color: var(--tinta);
+		background: transparent;
+		border: 0;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	.izbornik a:hover,
+	.odjava:hover,
+	.admin-gumb:hover {
+		background: var(--nebo);
+	}
+	/* Trenutna stranica: deblji tekst i crta, ne samo boja. */
+	.izbornik a[aria-current] {
+		font-weight: 700;
+		box-shadow: inset 4px 0 0 var(--more);
+	}
+	.odvojeno {
+		margin-top: 8px;
+		padding-top: 8px;
+		border-top: 1px solid var(--crta);
+	}
+	.izbornik form {
+		margin: 0;
+	}
+
+	/* Admin: na uskom zaslonu ugniježđen popis ispod gumba. */
+	.admin-gumb {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.admin-gumb.aktivan {
+		font-weight: 700;
+	}
+	.admin-gumb svg {
+		flex: none;
+	}
+	.admin-gumb[aria-expanded='true'] svg {
+		rotate: 180deg;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.admin-gumb svg {
+			transition: rotate 0.2s;
+		}
+	}
+	.admin-popis {
+		margin: 0;
+		padding: 0 0 0 14px;
+		list-style: none;
+	}
+
+	/* Široko: isti popis stoji u redu zaglavlja. */
+	.zaglavlje.siroko .izbornik-gumb {
+		display: none;
+	}
+	.zaglavlje.siroko .izbornik {
+		position: static;
+		display: flex;
+		align-items: center;
+		gap: 0;
+		inline-size: auto;
+		max-inline-size: none;
+		block-size: auto;
+		max-block-size: none;
+		margin: 0;
+		padding: 0;
+		overflow: visible;
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+	}
+	.zaglavlje.siroko .izbornik::backdrop {
+		display: none;
+	}
+	.zaglavlje.siroko .izbornik a,
+	.zaglavlje.siroko .odjava,
+	.zaglavlje.siroko .admin-gumb {
+		width: auto;
+		min-height: 56px;
+		padding: 16px 7px;
+		font-size: 1rem;
+		color: var(--na-moru-siva);
+		border-radius: 0;
+	}
+	.zaglavlje.siroko .izbornik a:hover,
+	.zaglavlje.siroko .odjava:hover,
+	.zaglavlje.siroko .admin-gumb:hover {
+		color: var(--na-moru);
+		background: transparent;
+		text-decoration: underline;
+	}
+	.zaglavlje.siroko .izbornik a[aria-current],
+	.zaglavlje.siroko .admin-gumb.aktivan {
+		color: var(--na-moru);
+		box-shadow: inset 0 -4px 0 var(--na-moru);
+	}
+	.zaglavlje.siroko .izbornik a:focus-visible,
+	.zaglavlje.siroko .odjava:focus-visible,
+	.zaglavlje.siroko .admin-gumb:focus-visible {
+		outline-color: var(--na-moru);
+		outline-offset: -3px;
+	}
+	.zaglavlje.siroko .odvojeno {
+		margin: 0 0 0 10px;
+		padding: 0 0 0 10px;
+		border-top: 0;
+		border-inline-start: 1px solid var(--na-moru-siva);
+	}
+
+	/* Široko: Admin je popover ispod gumba. */
+	.zaglavlje.siroko .admin-popis[popover] {
+		position: absolute;
+		position-area: block-end span-inline-end;
+		position-try-fallbacks: flip-block, flip-inline;
+		inset: auto;
+		height: auto;
+		inline-size: max-content;
+		min-inline-size: 12rem;
+		margin: 0;
+		margin-block-start: 0.5rem;
+		padding: 6px;
+		color: var(--tinta);
+		background: var(--papir);
+		border: 1px solid var(--crta);
+		border-radius: 8px;
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.2);
+	}
+	@supports not (position-area: block-end) {
+		.zaglavlje.siroko .admin-popis[popover] {
+			position: fixed;
+			margin: 0;
+		}
+	}
+	/* Skriva popis i prije nego što skripta postavi popover, da ne širi red pri mjerenju. */
+	.zaglavlje.siroko .admin-popis:not(:is(:popover-open, .\:popover-open)) {
+		display: none;
+	}
+	.zaglavlje.siroko .admin-popis:is(:popover-open, .\:popover-open) {
+		display: grid;
+	}
+	.zaglavlje.siroko .admin-popis a {
+		width: 100%;
+		min-height: 44px;
+		padding: 10px 12px;
+		color: var(--tinta);
+		border-radius: 6px;
+	}
+	.zaglavlje.siroko .admin-popis a:hover {
+		color: var(--tinta);
+		background: var(--nebo);
+		text-decoration: none;
+	}
+	.zaglavlje.siroko .admin-popis a[aria-current] {
+		color: var(--tinta);
+		box-shadow: inset 4px 0 0 var(--more);
+	}
+	.zaglavlje.siroko .admin-popis a:focus-visible {
+		outline-color: var(--more);
+	}
+
+	@media (forced-colors: active) {
+		.izbornik a[aria-current],
+		.admin-gumb.aktivan {
+			text-decoration: underline;
+		}
+	}
+</style>

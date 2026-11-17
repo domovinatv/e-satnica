@@ -15,8 +15,7 @@ if (!trazi.length) return Astro.redirect(natrag);
 const nazivi = trazi.map((t) => NAZIV_NA_CERTILIJI[t]);
 ---
 
-<Osnova naslov="Dopuna podataka">
-	<h1>Trebamo podatak iz e-Osobne</h1>
+<Osnova naslov="Dopuna podataka" h1="Trebamo podatak iz e-Osobne" slika="prijava">
 	{svrha && <p>{svrha}</p>}
 	<p>Na sljedećem Certilijinom ekranu označi:</p>
 	<ul>
@@ -33,7 +32,7 @@ const nazivi = trazi.map((t) => NAZIV_NA_CERTILIJI[t]);
 		margin: 8px 0 16px;
 		padding: 12px 20px;
 		border-radius: 8px;
-		background: var(--plava);
+		background: #0e3f8c;
 		color: #fff;
 		font-weight: 600;
 		text-decoration: none;

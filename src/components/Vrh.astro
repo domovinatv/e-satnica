@@ -1,0 +1,117 @@
+---
+// Vrh stranice: plava podloga s mrežom, putanja, naslov i ilustracija za tu stranicu,
+// a na dnu valovi kao na naslovnici. Ne ovisi o stilovima okvira, pa ga koriste i
+// javne stranice i specifikacija.
+import Mrvice from './Mrvice.astro';
+import Val from './Val.astro';
+import VrhSlika from './VrhSlika.astro';
+import type { Slika } from '../lib/slike';
+
+interface Props {
+	naslov: string;
+	mrvice?: { href: string; tekst: string }[];
+	/** Stranica prikazuje izmišljene podatke prototipa. */
+	fiktivno?: boolean;
+	slika?: Slika;
+}
+const { naslov, mrvice, fiktivno = false, slika } = Astro.props;
+---
+
+<header class="vrh">
+	<div class="unutra">
+		<div class="tekst">
+			{mrvice && <Mrvice stavke={mrvice} />}
+			<h1>{naslov}</h1>
+			{
+				Astro.slots.has('default') && (
+					<div class="uvod">
+						<slot />
+					</div>
+				)
+			}
+			{fiktivno && <p class="proba">Testni prototip</p>}
+		</div>
+		{
+			slika && (
+				<div class="slika-okvir">
+					<VrhSlika vrsta={slika} />
+				</div>
+			)
+		}
+	</div>
+	<Val nisko />
+</header>
+
+<style>
+	.vrh {
+		position: relative;
+		isolation: isolate;
+		overflow: clip;
+		color: var(--na-moru);
+		background: var(--pozadina-mora);
+	}
+	/* Blaga mreža kao na papiru satnice, izblijeđena prema rubovima. */
+	.vrh::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background-image:
+			linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
+			linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+		background-size: 44px 44px;
+		mask-image: radial-gradient(ellipse 70% 90% at 80% 30%, #000 15%, transparent 75%);
+		pointer-events: none;
+	}
+	.unutra {
+		display: grid;
+		gap: 16px 40px;
+		align-items: center;
+		max-width: 1120px;
+		margin: 0 auto;
+		padding: 10px 16px 0;
+	}
+	@media (min-width: 760px) {
+		.unutra {
+			grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+			min-height: 190px;
+		}
+	}
+	.slika-okvir {
+		display: none;
+	}
+	@media (min-width: 760px) {
+		.slika-okvir {
+			display: block;
+		}
+	}
+	h1 {
+		margin: 0;
+		max-width: 26ch;
+		font-family: var(--serif);
+		font-size: clamp(1.9rem, 5.6vw, 3rem);
+		font-weight: 600;
+		line-height: 1.12;
+		letter-spacing: -0.01em;
+		text-wrap: balance;
+	}
+	.uvod {
+		max-width: 64ch;
+		color: var(--na-moru-siva);
+	}
+	.uvod :global(p) {
+		margin: 10px 0 0;
+	}
+	.uvod :global(a) {
+		color: var(--na-moru);
+	}
+	.proba {
+		display: inline-block;
+		margin: 14px 0 0;
+		padding: 2px 10px;
+		font-size: 0.94rem;
+		color: var(--na-moru);
+		border: 1px solid var(--na-moru-siva);
+		border-radius: 999px;
+	}
+</style>

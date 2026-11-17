@@ -32,11 +32,10 @@ const odbijeno = await razlogOdbijanja(sesija);
 const datum = (d: string | null) => (d ? new Date(`${d}Z`).toLocaleDateString('hr-HR', { timeZone: 'Europe/Zagreb' }) : '—');
 ---
 
-<Osnova naslov="Pristupni ključevi">
+<Osnova naslov="Pristupni ključevi" h1={ponuda ? 'Brži ulaz sljedeći put?' : 'Pristupni ključevi'} slika="prijava">
 	{
 		ponuda ? (
 			<>
-				<h1>Brži ulaz sljedeći put?</h1>
 				<p>
 					Možeš dodati <strong>pristupni ključ</strong> (passkey) na ovaj uređaj. Sljedeći put ulaziš otiskom prsta,
 					licem ili PIN-om uređaja, bez Certilije i mobileID-a.
@@ -44,7 +43,6 @@ const datum = (d: string | null) => (d ? new Date(`${d}Z`).toLocaleDateString('h
 			</>
 		) : (
 			<>
-				<h1>Pristupni ključevi</h1>
 				<p>
 					Pristupni ključ (passkey) je brži ulaz u e-satnicu: otisak prsta, lice ili PIN uređaja umjesto Certilije.
 					Dodaje se nakon prijave Certilijom.
