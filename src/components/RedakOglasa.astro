@@ -21,7 +21,7 @@ const preostalo = dana === 0 ? 'Danas zadnji dan' : `Još ${dana} ${oblik(dana, 
 		<Naslov class="predmet">
 			<a href={o.fiktivna === 1 ? o.izvor_url : `/oglasi/${o.id}`}>{o.predmet}</a>
 			{o.izvrsitelja > 1 && <span class="mjesta">{o.izvrsitelja} mjesta</span>}
-			{o.fiktivna === 1 && <span class="oznaka pazi testno">testni podatak</span>}
+			{o.fiktivna === 1 && <span class="oznaka pazi testno">izmišljeni podatak</span>}
 		</Naslov>
 		<p class="skola">
 			{o.skola}, {o.mjesto_rada ?? o.mjesto}

@@ -29,7 +29,14 @@ const { naslov, mrvice, fiktivno = false, slika } = Astro.props;
 					</div>
 				)
 			}
-			{fiktivno && <p class="proba">Testni prototip</p>}
+			{
+				fiktivno && (
+					<p class="proba">
+						<strong>Izmišljeni podaci</strong>
+						<span>Osobe, škole, slobodni sati, bodovi i zamjene ovdje su izmišljeni, samo da se vidi kako sustav radi. Stvarni su samo natječaji prepisani sa stranica škola.</span>
+					</p>
+				)
+			}
 		</div>
 		{
 			slika && (
@@ -105,13 +112,24 @@ const { naslov, mrvice, fiktivno = false, slika } = Astro.props;
 	.uvod :global(a) {
 		color: var(--na-moru);
 	}
+	/* Oznaka izmišljenih podataka: mora se vidjeti, jer je baza popunjena i na produkciji. */
 	.proba {
-		display: inline-block;
-		margin: 14px 0 0;
-		padding: 2px 10px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 6px 10px;
+		max-width: 60ch;
+		margin: 16px 0 0;
+		padding: 10px 14px;
 		font-size: 0.94rem;
-		color: var(--na-moru);
-		border: 1px solid var(--na-moru-siva);
+		color: var(--zuto);
+		background: var(--zuto-podloga);
+		border-radius: 8px;
+	}
+	.proba strong {
+		padding: 1px 10px;
+		color: var(--zuto-podloga);
+		background: var(--zuto);
 		border-radius: 999px;
 	}
 </style>

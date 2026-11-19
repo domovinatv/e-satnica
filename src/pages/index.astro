@@ -239,6 +239,14 @@ const NATJECAJ = Array.from({ length: 40 }, (_, i) => 338 + crtica(i, 3.6, 4));
 				</p>
 			</section>
 
+			{
+				p && (
+					<p class="napomena pazi odjeljak-napomena">
+						<strong>Izmišljeni podaci.</strong> Slobodni sati, zamjene, osobe i škole ispod izmišljeni su, samo da se vidi kako sustav radi. Stvarni su samo natječaji prepisani sa stranica škola; izmišljeni su označeni.
+					</p>
+				)
+			}
+
 			<section class="odjeljak" aria-labelledby="natjecaji-naslov">
 				<h2 id="natjecaji-naslov">Natječaji</h2>
 				{
@@ -855,6 +863,9 @@ const NATJECAJ = Array.from({ length: 40 }, (_, i) => 338 + crtica(i, 3.6, 4));
 	/* ---------- Pregled dijelova ---------- */
 	.odjeljak {
 		margin-top: 56px;
+	}
+	.odjeljak-napomena {
+		margin: 56px 0 -32px;
 	}
 	.odjeljak > .gumb {
 		margin-top: 16px;
