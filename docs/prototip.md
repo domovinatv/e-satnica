@@ -1,8 +1,8 @@
 # Javni prototip na fiktivnoj bazi
 
 Stanje 17. 11. 2026. Prototip pokazuje kako bi sustav iz specifikacije radio, na
-izmišljenoj bazi jedne županije. Sve se čita bez prijave (sekcija „Prijava i podaci":
-do puštanja u rad razvijamo javnu verziju). Stranice imaju `noindex`.
+izmišljenoj bazi jedne županije. Prototip se čita bez prijave (sekcija „Prijava i podaci":
+do puštanja u rad razvijamo javnu verziju); specifikacija s unosima tima ostaje iza prijave. Stranice imaju `noindex`.
 
 Stvarni su samo natječaji prepisani sa stranica škola ([oglasi.md](oglasi.md)), dokumenti
 koje nađe uvoz natječaja i specifikacija s unosima tima. Nastavnici, škole, bodovi,
@@ -208,8 +208,9 @@ odluka pišu samo oznake, pa ni one ne otkrivaju ime.
 
 ## Javno čitanje
 
-`src/middleware.ts` pušta svako čitanje bez prijave. Prijavu traže stranice vlastitog
-računa (`/racun`, `/kljucevi`, `/dopuna`, `/uloga`) i svaki upis, osim prijave, odjave,
+`src/middleware.ts` pušta čitanje bez prijave. Prijavu traže specifikacija
+(`/specifikacija`, s unosima tima), stranice vlastitog računa (`/racun`, `/kljucevi`,
+`/dopuna`, `/uloga`) i svaki upis, osim prijave, odjave,
 kalkulatora te probne prijave i unosa u fiktivnu bazu, koji sami provjeravaju ulogu.
 Kad sustav krene s pravim podacima, to se mora okrenuti: sve iza prijave, osim javnog
 popisa.

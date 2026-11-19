@@ -25,7 +25,7 @@ const STANJA: Record<string, string> = {
 const sekcija = await getEntry('specifikacija', Astro.params.sekcija ?? '');
 if (!sekcija) return new Response('Nema te sekcije', { status: 404 });
 
-// Sekciju i unose tima (s imenom autora) čita svatko. Upisuju samo prijavljeni.
+// Specifikacija je iza prijave (middleware.ts), pa unose tima s imenom autora vide samo prijavljeni.
 const prijavljen = Astro.locals.sesija !== undefined;
 
 let greska = '';
@@ -82,7 +82,7 @@ const { results: stavke } = await env.DB.prepare(
 					<textarea id="tekst" name="tekst" required maxlength="5000" />
 					{greska && <p class="greska">{greska}</p>}
 					<p class="meta">
-						Unos je javno vidljiv uz tvoje ime, i bez prijave. <a href="/privatnost">Privatnost</a>
+						Unos vide svi prijavljeni, uz tvoje ime. <a href="/privatnost">Privatnost</a>
 					</p>
 					<button type="submit">Spremi</button>
 				</form>

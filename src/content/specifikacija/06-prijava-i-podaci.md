@@ -12,7 +12,7 @@ sazetak: Prijava s @skole.hr ili Certilijom, što znamo o e-Matici i odakle dola
 - **Zašto oba:** račun @skole.hr vrijedi samo dok traje zaposlenje u školi. Tko tek traži posao, ulazi Certilijom.
 - **Škola i uloga** (nastavnik ili ravnatelj, i u kojoj školi) još ne stižu uz prijavu. Pitali smo CARNET, koji vodi imenik @skole.hr, i čekamo odgovor; isto vrijedi za nastavnike koji rade u više škola (otvoreno pitanje 26). Mogući rezervni put je potvrda ravnatelja.
 - **Dodatni podaci** (npr. datum rođenja) traže se tek kad ih neka funkcija treba, od onog davatelja koji ih ima.
-- **Do puštanja u rad:** sustav je zamišljen s prijavom, ali dok ne krene s pravim podacima razvijamo javnu verziju. Bez prijave se čitaju javni popis natječaja i specifikacija s unosima tima; prijava treba za upis.
+- **Do puštanja u rad:** sustav je zamišljen s prijavom, ali dok ne krene s pravim podacima razvijamo javnu verziju. Bez prijave se čitaju naslovnica, javni popis natječaja i prototip na fiktivnoj bazi. Specifikacija s unosima tima i svaki upis traže prijavu.
 
 **Otvoreno:** za koje funkcije treba @skole.hr, za koje Certilia, a za koje oboje (otvoreno pitanje 23).
 

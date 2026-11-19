@@ -31,7 +31,7 @@ git remote set-url --add --push origin git@github.com:most-hrvatska/e-satnica.gi
 
 ## Javni prototip
 
-Do puštanja u rad sve se čita bez prijave: popis natječaja (`/oglasi`), specifikacija
+Do puštanja u rad bez prijave se čitaju naslovnica (`/`), popis natječaja (`/oglasi`)
 i prototip na izmišljenoj bazi jedne županije (lista, raspodjela, zamjene, slobodni
 sati, povjerenstvo). Unos se isprobava kroz probnu prijavu u ulogu (`/probna-prijava`),
 koja radi samo uz `PROBNA_PRIJAVA=1` i na produkciji je isključena. Što je napravljeno,
@@ -40,7 +40,7 @@ koja radi samo uz `PROBNA_PRIJAVA=1` i na produkciji je isključena. Što je nap
 ## Specifikacija i feedback tima
 
 - Sadržaj specifikacije: `src/content/specifikacija/*.md` (jedna datoteka = jedna sekcija).
-- `/specifikacija` se čita bez prijave, zajedno s unosima tima. Upis traži prijavu.
+- `/specifikacija` je iza prijave, zajedno s unosima tima.
 - Tim na `/specifikacija/<sekcija>` upisuje komentare, zahtjeve, pitanja i odgovore u D1 tablicu `stavke`.
 - Prihvaćene stavke skupljaju se u `paketi`; jedan paket = jedna iteracija razvoja.
 - Čitanje i trijaža: `scripts/stavke.sh` (vidi `--help`).

@@ -3,12 +3,13 @@ import { KOLACIC, procitajSesiju } from './lib/sesija';
 import { KOLACIC_ULOGE, parsirajUlogu, procitajUlogu } from './lib/uloga';
 import { potvrdeneUloge } from './lib/uloge';
 
-// Do puštanja u rad sustav je javan: sve se čita bez prijave (specifikacija, sekcija
-// „Prijava i podaci"). Prijava i dalje treba za upis i za stranice vlastitog računa.
-// Kad sustav krene s pravim podacima, ovo se vraća na „sve iza prijave, osim popisa".
+// Do puštanja u rad prototip je javan: naslovnica, natječaji i stranice na fiktivnoj
+// bazi čitaju se bez prijave. Specifikacija s unosima tima ostaje zatvorena, kao i
+// stranice vlastitog računa; upis i dalje traži prijavu. Kad sustav krene s pravim
+// podacima, ovo se vraća na „sve iza prijave, osim popisa".
 
-/** Stranice vlastitog računa: bez sesije nemaju što prikazati. */
-const SAMO_PRIJAVLJENI = ['/racun', '/kljucevi', '/dopuna', '/uloga'];
+/** Stranice samo za prijavljene: vlastiti račun i specifikacija s unosima tima. */
+const SAMO_PRIJAVLJENI = ['/racun', '/kljucevi', '/dopuna', '/uloga', '/specifikacija'];
 
 /**
  * Upisi koji smiju bez sesije: prijava i odjava, kalkulator (ništa ne sprema) te
