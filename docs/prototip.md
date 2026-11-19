@@ -218,3 +218,53 @@ popisa.
 `astro.config.mjs` ima `compressHTML: true`. Astro 7 po zadanom briše razmak oko
 elemenata na prijelomu retka, pa je na stranicama pisalo „piši na" spojeno s
 poveznicom iza.
+
+## Na produkciji (od 19. 11. 2026.)
+
+PR #1 i #2 spojeni su lokalno u `main` (fast-forward) i deployani. Merge se ne radi
+GitHub gumbom: `origin` ima push URL-ove obaju repoa (`domovinatv`, `most-hrvatska`),
+pa lokalni `git push` drži isti `main` u oba.
+
+- **Javno:** naslovnica `/`, `/oglasi` i sve stranice prototipa. **Iza prijave:**
+  `/specifikacija`, jer se unosi tima prikazuju s imenom autora, te stranice računa.
+- **Fiktivna baza je upisana i u produkcijsku D1**, da se vidi popunjen sustav. Svaka
+  stranica s izmišljenim podacima ima žutu oznaku „Izmišljeni podaci" (`Vrh` s
+  `fiktivno`, na naslovnici napomena iznad natječaja), a izmišljeni natječaji oznaku
+  „izmišljeni podatak". Fiktivne škole imaju šifru `FIK-xx` i `fiktivna = 1`; stvarne
+  su `17-…`.
+- `PROBNA_PRIJAVA` na produkciji nije postavljena: neprijavljeni samo čitaju.
+
+### Osvježavanje fiktivne baze na produkciji
+
+Događaji u fiktivnoj bazi računaju se od dana izgradnje, pa izmišljeni natječaji za
+tjedan-dva isteknu. Osvježava se ovako:
+
+```bash
+npm run db:backup
+node scripts/fiktivna-baza.ts
+CLOUDFLARE_ACCOUNT_ID=7dc7167b7e2e00923bfa7cd697df14e4 \
+  npx wrangler d1 execute e-satnica --remote --file .wrangler/fiktivna-baza.sql
+```
+
+SQL briše samo prototipske tablice (0008–0010), fiktivne škole i oglase sa `sati_id`.
+Ne dira `korisnici`, `stavke`, `uloge`, stvarne škole ni stvarne oglase. Upis 19. 11.:
+517 upita, 1444 retka; nakon njega 5 korisnika, 18 stvarnih škola i 49 stvarnih oglasa
+ostalo je netaknuto.
+
+### Zamka: zaglavlje je bljesnulo na širokom zaslonu
+
+Server šalje zaglavlje skupljeno (gumb „Izbornik" + popover). Astro `<script>` je modul
+i izvršava se nakon prvog iscrtavanja, pa je na desktopu svaka navigacija na trenutak
+pokazala gumb. Prvo mjerenje zato radi `<script is:inline>` odmah iza `</header>` u
+`Zaglavlje.astro` (koristi `previousElementSibling`, pa mora ostati točno iza
+zaglavlja). Provjereno u Chromiumu s blokiranim modulima: 1280 px odmah široko, 375 px
+usko; bez inline skripte prvo stanje je usko.
+
+### Otvoreno
+
+- Početni stvarni oglasi (`scripts/oglasi-pocetni.sql`) svi su istekli, zadnji rok
+  9. 11.; naslovnica zato pokazuje samo izmišljene natječaje. Treba redovni uvoz
+  (`npm run db:uvoz` je zasad samo lokalan) ili ručno osvježenje.
+- `docs/oglasi.md` još kaže „Stanje 30. 10.".
+- `npm run db:udaljenosti` (OSRM) nije pokrenut; fiktivna baza koristi približne
+  udaljenosti.
