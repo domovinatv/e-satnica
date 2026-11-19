@@ -114,6 +114,21 @@ const proba = Astro.locals.uloga
 		</nav>
 	</div>
 </header>
+<script is:inline>
+	// Prvo mjerenje prije prvog iscrtavanja. Skripta ispod je modul i izvršava se tek nakon
+	// iscrtavanja, pa bi na širokom zaslonu svaka stranica na trenutak pokazala gumb
+	// „Izbornik". Ovdje samo odlučimo stane li popis u red; ostalo radi skripta ispod.
+	(() => {
+		const z = document.currentScript?.previousElementSibling;
+		const red = z?.querySelector('.red');
+		const izbornik = z?.querySelector('.izbornik');
+		if (!z || !red || !izbornik) return;
+		z.classList.add('siroko');
+		const stane = red.scrollWidth <= red.clientWidth;
+		z.classList.toggle('siroko', stane);
+		if (stane) izbornik.removeAttribute('popover');
+	})();
+</script>
 
 <script>
 	// Popover još nije u svim preglednicima koje podržavamo; nadomjestak se učitava samo gdje ga nema.
